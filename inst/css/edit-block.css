@@ -1,0 +1,130 @@
+/* EditBlock — edit block specific styles */
+/* Shared row / pill / popover / gear styles come from blockr-blocks.css */
+
+.edit-block-container { width: 100%; }
+
+.eb-card {
+  overflow: visible;
+  position: relative;
+  padding: 8px;
+}
+
+/* Row picker wrap */
+.eb-picker-wrap {
+  margin-bottom: 8px;
+}
+
+/* Stale-row banner */
+.eb-stale-banner {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #92400e;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 4px 0 8px;
+}
+
+/* Form fields */
+.eb-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.eb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eb-field-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eb-field-input input,
+.eb-field-input .blockr-select {
+  flex: 1;
+}
+
+.eb-field-error {
+  color: #dc2626;
+  font-size: 11px;
+  display: none;
+}
+
+.eb-checkbox {
+  width: 18px;
+  height: 18px;
+}
+
+/* Action footer */
+.eb-actions {
+  margin-top: 8px;
+}
+
+.eb-actions-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.eb-delete-link {
+  color: #b91c1c;
+}
+
+.eb-delete-link:hover {
+  color: #7f1d1d !important;
+}
+
+.eb-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+.eb-apply-btn {
+  padding: 4px 14px;
+  height: 28px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: var(--blockr-color-primary, #2563eb);
+  border-color: var(--blockr-color-primary, #2563eb);
+}
+
+.eb-apply-btn:hover {
+  background: #1d4ed8 !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+}
+
+.eb-apply-btn[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Popover-specific */
+.eb-popover-col-host {
+  flex: 1;
+  min-width: 200px;
+}
+
+.eb-popover-status {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  min-height: 1em;
+}
+
+.eb-popover-status--warn {
+  color: #b45309;
+}
+
+button[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

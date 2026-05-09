@@ -1,0 +1,30 @@
+# R / RStudio
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+.Rapp.history
+
+# Package build artifacts
+..Rcheck/
+*.Rcheck/
+*.tar.gz
+README.html
+CRAN-SUBMISSION
+
+# Vignettes / docs
+docs/
+/doc/
+/Meta/
+vignettes/*.html
+vignettes/*.pdf
+
+# shinytest2 new snapshots
+*_.new.png
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
