@@ -1,6 +1,6 @@
 Package: blockr.input
 Title: Interactive Data Entry Blocks for Blockr
-Version: 0.0.0.9005
+Version: 0.0.0.9106
 Authors@R:
     person(given = "Christoph",
            family = "Sax",
@@ -25,6 +25,7 @@ Imports:
     htmltools,
     rlang,
     shiny,
+    stringr,
     tibble,
     utils
 Suggests:

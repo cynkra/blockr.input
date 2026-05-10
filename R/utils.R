@@ -206,3 +206,26 @@ cast_tbl_to_match <- function(tbl, template_df) {
   }
   tbl
 }
+
+# Build a typed tibble from a list of named lists (one per upsert row),
+# column-by-column. Column types are taken from `template_df`. Empty
+# strings and NULL become NA of the appropriate type. Avoids the
+# bind_rows("Can't combine <int> and <chr>") trap that occurs when one
+# row's value is empty (parsed as character by as_tibble_row).
+build_upserts_tbl <- function(rows, template_df) {
+  if (length(rows) == 0L) return(tibble::tibble())
+  if (is.null(template_df) || ncol(template_df) == 0L) {
+    # No type guidance — fall back to plain bind_rows.
+    return(dplyr::bind_rows(lapply(rows, tibble::as_tibble_row)))
+  }
+  cols <- list()
+  for (nm in colnames(template_df)) {
+    raw <- vapply(rows, function(r) {
+      v <- r[[nm]]
+      if (is.null(v) || identical(v, "")) NA_character_
+      else as.character(v)
+    }, character(1))
+    cols[[nm]] <- cast_to_match(raw, template_df[[nm]])
+  }
+  tibble::as_tibble(cols)
+}

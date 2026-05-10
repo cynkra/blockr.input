@@ -1,0 +1,245 @@
+/* TableBlock styles. Hand-rolled table chrome (no Tabulator) using the
+ * blockr design tokens. Diff-state classes are shared with grid-block:
+ * gb-row--new (green), gb-row--updated (amber), gb-row--deleted (red
+ * strikethrough). */
+
+.table-block-container { width: 100%; }
+
+.tb-card {
+  position: relative;
+  padding: 8px;
+}
+
+/* Cogwheel popover (same shape as grid block) */
+.tb-popover {
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  z-index: 30;
+  min-width: 220px;
+  padding: 12px;
+}
+.tb-popover-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Pending-changes strip */
+.tb-strip-wrap {
+  margin: 4px 0 12px 0;
+  border: 1px solid var(--blockr-color-border, #e5e7eb);
+  border-radius: var(--blockr-radius-input, 8px);
+  background: var(--blockr-grey-50, #f9fafb);
+}
+.tb-strip-label {
+  padding: 6px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--blockr-color-text-secondary, #6b7280);
+  font-weight: 600;
+  border-bottom: 1px solid var(--blockr-color-border, #e5e7eb);
+}
+.tb-strip-scroll {
+  max-height: 240px;   /* ~6 rows tall, then scroll */
+  overflow-y: auto;
+}
+.tb-strip-empty {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--blockr-color-text-muted, #9ca3af);
+  font-style: italic;
+}
+
+/* Search bar */
+.tb-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px 0;
+}
+.tb-search-input {
+  flex: 1;
+  height: 30px;
+  padding: 4px 8px;
+  font: inherit;
+  font-size: 13px;
+  border: 1px solid var(--blockr-color-border, #e5e7eb);
+  border-radius: var(--blockr-radius-input, 8px);
+  outline: none;
+}
+.tb-search-input:focus {
+  border-color: var(--blockr-color-primary, #2563eb);
+  box-shadow: var(--blockr-focus-ring, 0 0 0 3px rgba(59, 130, 246, 0.1));
+}
+
+/* Page table host */
+.tb-page-wrap {
+  border: 1px solid var(--blockr-color-border, #e5e7eb);
+  border-radius: var(--blockr-radius-input, 8px);
+  overflow: hidden;
+}
+
+/* Hand-rolled table chrome (mirrors blockr.extra HTML preview vocabulary
+   but kept local to avoid coupling to that package). */
+.blockr-input-table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Lock column widths so cell-edit doesn't reflow the table. */
+  table-layout: fixed;
+  font-family: var(--blockr-font,
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+  font-size: 13px;
+  background: #fff;
+}
+.blockr-input-table td {
+  /* Truncate long values rather than expand the column. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Enforce a clickable height even for empty cells so the user can
+     click into a blank field on a freshly-added row. */
+  height: 32px;
+  cursor: pointer;
+}
+.blockr-input-table td:hover {
+  background: var(--blockr-color-bg-hover, #f3f4f6);
+}
+/* Empty editable cells get a subtle hover hint so the user knows they
+   can click. Static-display cells (deleted strip rows, header) opt out. */
+.blockr-input-table td:empty::before {
+  content: "\00a0"; /* keeps the cell's natural height */
+}
+.blockr-input-table th,
+.blockr-input-table td {
+  padding: 6px 10px;
+  border-right: 1px solid var(--blockr-color-border, #e5e7eb);
+  border-bottom: 1px solid var(--blockr-color-border, #e5e7eb);
+  text-align: left;
+  vertical-align: middle;
+}
+.blockr-input-table th {
+  background: var(--blockr-grey-50, #f9fafb);
+  font-weight: 600;
+  color: var(--blockr-color-text-secondary, #6b7280);
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  user-select: none;
+}
+.blockr-input-table th.tb-sortable { cursor: pointer; }
+.blockr-input-table th.tb-sortable:hover {
+  background: var(--blockr-color-bg-hover, #f3f4f6);
+}
+.blockr-input-table th .tb-sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: var(--blockr-color-text-muted, #9ca3af);
+}
+.blockr-input-table th.tb-sort-active .tb-sort-icon {
+  color: var(--blockr-color-primary, #2563eb);
+}
+
+/* Row-selection chrome column */
+.blockr-input-table th.tb-select-col,
+.blockr-input-table td.tb-select-col {
+  width: 30px;
+  text-align: center;
+  border-right: 1px solid var(--blockr-color-border, #e5e7eb);
+}
+
+/* Cell editor — inset box-shadow for the focus ring (no layout
+   impact). The td keeps its 6/10 padding so the input lines up
+   exactly with the static cell text it replaces. */
+.blockr-input-table td.tb-editing {
+  box-shadow: inset 0 0 0 2px var(--blockr-color-primary, #2563eb);
+  background: #fff;
+  padding: 0;
+}
+.blockr-input-table td.tb-editing input,
+.blockr-input-table td.tb-editing select {
+  width: 100%;
+  height: 100%;
+  padding: 6px 10px;
+  border: none;
+  outline: none;
+  font: inherit;
+  background: transparent;
+  box-sizing: border-box;
+}
+.blockr-input-table td.tb-invalid {
+  background: #fef2f2;
+  color: var(--blockr-color-error, #dc3545);
+  box-shadow: inset 0 0 0 2px var(--blockr-color-error, #dc3545);
+}
+
+/* Footer (pagination + counts) */
+.tb-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px 0 4px;
+  font-size: 12px;
+  color: var(--blockr-color-text-secondary, #6b7280);
+}
+.tb-footer .tb-page-info { margin-right: auto; }
+.tb-page-nav-btn {
+  height: 26px;
+  width: 26px;
+  padding: 0;
+  border: 1px solid var(--blockr-color-border, #e5e7eb);
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+.tb-page-nav-btn:hover { background: var(--blockr-color-bg-hover, #f3f4f6); }
+.tb-page-nav-btn[disabled] { opacity: 0.4; cursor: default; }
+.tb-page-size-select {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--blockr-color-border, #e5e7eb);
+  border-radius: 4px;
+  font: inherit;
+  font-size: 12px;
+  background: #fff;
+}
+
+/* Action footer */
+.tb-actions { margin-top: 8px; }
+.tb-actions-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+.tb-delete-link { color: #b91c1c; }
+.tb-delete-link:hover { color: #7f1d1d !important; }
+.tb-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+.tb-status {
+  float: right;
+  font-size: 12px;
+  color: var(--blockr-color-text-secondary, #6b7280);
+}
+.tb-status--ok  { color: var(--blockr-color-text-secondary, #6b7280); }
+.tb-status--err { color: var(--blockr-color-error, #dc3545); }
+
+/* Diff-state row indicators (shared vocabulary with grid block). */
+.blockr-input-table tr.gb-row--updated {
+  background: #fffbeb !important;
+  box-shadow: inset 3px 0 0 #f59e0b !important;
+}
+.blockr-input-table tr.gb-row--new {
+  background: #ecfdf5 !important;
+  box-shadow: inset 3px 0 0 #10b981 !important;
+}
+.blockr-input-table tr.gb-row--deleted {
+  background: #fef2f2 !important;
+  box-shadow: inset 3px 0 0 #dc3545 !important;
+  color: #9ca3af !important;
+  text-decoration: line-through;
+}

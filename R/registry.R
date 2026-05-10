@@ -22,4 +22,15 @@ register_blocks_internal <- function() {
     category = "transform",
     package = "blockr.input"
   )
+  register_blocks(
+    "new_table_block",
+    name = "Table CRUD",
+    description = paste0(
+      "Server-paginated browse-and-edit over a tibble or dbplyr lazy ",
+      "table. Sort, search, page; pending edits visible above the page; ",
+      "composes dplyr::rows_upsert and dplyr::rows_delete on Apply."
+    ),
+    category = "transform",
+    package = "blockr.input"
+  )
 }

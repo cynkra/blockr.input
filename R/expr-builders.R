@@ -105,3 +105,54 @@ make_grid_expr <- function(state, upstream = NULL) {
   expr  <- as.call(c(list(quote(`{`)), stmts))
   blockr.core::bbquote(.(expr), list(expr = expr))
 }
+
+#' Build the table block's bquoted expression.
+#'
+#' Same shape as `make_grid_expr` (rows_delete + rows_upsert), but the
+#' upstream sample is taken via `dplyr::collect(head(data, 0))` so it
+#' works on dbplyr lazy tables without materialising rows.
+#'
+#' @noRd
+make_table_expr <- function(state, upstream = NULL) {
+  key     <- state$key_col
+  upserts <- state$upserts %||% list()
+  deletes <- state$deletes %||% list()
+
+  if (is.null(key) || !nzchar(key) ||
+      (length(upserts) == 0L && length(deletes) == 0L)) {
+    return(blockr.core::bbquote(.(data)))
+  }
+
+  sample <- if (!is.null(upstream)) {
+    tryCatch(dplyr::collect(utils::head(upstream, 0L)),
+             error = function(e) NULL)
+  } else {
+    NULL
+  }
+
+  stmts <- list(quote(.x <- .(data)))
+
+  if (length(deletes) > 0L) {
+    key_vals <- unlist(deletes, use.names = FALSE)
+    if (!is.null(sample) && key %in% colnames(sample)) {
+      key_vals <- cast_to_match(key_vals, sample[[key]])
+    }
+    deletes_tbl <- tibble::tibble(!!key := key_vals)
+    stmts <- c(stmts, list(blockr.core::bbquote(
+      .x <- dplyr::rows_delete(.x, .(d), by = .(k)),
+      list(d = deletes_tbl, k = key)
+    )))
+  }
+
+  if (length(upserts) > 0L) {
+    upserts_tbl <- build_upserts_tbl(upserts, sample)
+    stmts <- c(stmts, list(blockr.core::bbquote(
+      .x <- dplyr::rows_upsert(.x, .(u), by = .(k)),
+      list(u = upserts_tbl, k = key)
+    )))
+  }
+
+  stmts <- c(stmts, list(quote(.x)))
+  expr  <- as.call(c(list(quote(`{`)), stmts))
+  blockr.core::bbquote(.(expr), list(expr = expr))
+}
