@@ -81,8 +81,9 @@
   overflow: hidden;
 }
 
-/* Hand-rolled table chrome (mirrors blockr.extra HTML preview vocabulary
-   but kept local to avoid coupling to that package). */
+/* Hand-rolled table chrome modelled on blockr.extra HTML preview
+   (table-preview.R). Same visual vocabulary so display and CRUD
+   blocks feel like the same table. */
 .blockr-input-table {
   width: 100%;
   border-collapse: collapse;
@@ -90,64 +91,99 @@
   table-layout: fixed;
   font-family: var(--blockr-font,
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
-  font-size: 13px;
+  font-size: var(--blockr-font-size-base, 0.875rem);
   background: #fff;
 }
-.blockr-input-table td {
-  /* Truncate long values rather than expand the column. */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  /* Enforce a clickable height even for empty cells so the user can
-     click into a blank field on a freshly-added row. */
-  height: 32px;
-  cursor: pointer;
-}
-.blockr-input-table td:hover {
-  background: var(--blockr-color-bg-hover, #f3f4f6);
-}
-/* Empty editable cells get a subtle hover hint so the user knows they
-   can click. Static-display cells (deleted strip rows, header) opt out. */
-.blockr-input-table td:empty::before {
-  content: "\00a0"; /* keeps the cell's natural height */
-}
-.blockr-input-table th,
-.blockr-input-table td {
-  padding: 6px 10px;
-  border-right: 1px solid var(--blockr-color-border, #e5e7eb);
+.blockr-input-table thead tr {
   border-bottom: 1px solid var(--blockr-color-border, #e5e7eb);
-  text-align: left;
-  vertical-align: middle;
 }
 .blockr-input-table th {
-  background: var(--blockr-grey-50, #f9fafb);
-  font-weight: 600;
-  color: var(--blockr-color-text-secondary, #6b7280);
-  text-transform: uppercase;
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  text-align: left;
+  padding: 10px 16px;
+  font-weight: 500;
+  color: var(--blockr-color-text-primary, #111827);
+  vertical-align: bottom;
+  overflow: hidden;
+  background: #fff;
   user-select: none;
 }
-.blockr-input-table th.tb-sortable { cursor: pointer; }
+.blockr-input-table th.tb-sortable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
 .blockr-input-table th.tb-sortable:hover {
-  background: var(--blockr-color-bg-hover, #f3f4f6);
+  background-color: var(--blockr-color-bg-subtle, #f9fafb);
+}
+.blockr-input-table th .tb-col-name {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--blockr-color-text-primary, #111827);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.blockr-input-table th .tb-type-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+.blockr-input-table th .tb-type-label {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--blockr-color-text-subtle, #b0b7c3);
 }
 .blockr-input-table th .tb-sort-icon {
   display: inline-block;
-  margin-left: 4px;
-  font-size: 10px;
-  color: var(--blockr-color-text-muted, #9ca3af);
+  width: 12px;
+  font-size: 11px;
+  color: var(--blockr-color-text-subtle, #b0b7c3);
 }
 .blockr-input-table th.tb-sort-active .tb-sort-icon {
   color: var(--blockr-color-primary, #2563eb);
 }
 
-/* Row-selection chrome column */
+/* Body */
+.blockr-input-table tbody tr {
+  border-bottom: 1px solid var(--blockr-grey-100, #f3f4f6);
+  transition: background-color 0.15s ease;
+}
+.blockr-input-table tbody tr:hover {
+  background-color: var(--blockr-color-bg-subtle, #f9fafb);
+}
+.blockr-input-table td {
+  padding: 10px 16px;
+  font-size: var(--blockr-font-size-base, 0.875rem);
+  color: var(--blockr-color-text-primary, #111827);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  height: 38px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.blockr-input-table td:empty::before {
+  content: "\00a0"; /* keeps the cell's natural height when blank */
+}
+
+/* Row-number column (left-most), modelled on blockr-row-number. */
+.blockr-input-table th.tb-rownum-col,
+.blockr-input-table td.tb-rownum-col {
+  width: 48px;
+  text-align: center;
+  font-size: var(--blockr-font-size-xs, 0.75rem);
+  color: var(--blockr-color-text-subtle, #9ca3af);
+  cursor: default;
+}
+
+/* Selection column (next to row-number). */
 .blockr-input-table th.tb-select-col,
 .blockr-input-table td.tb-select-col {
-  width: 30px;
+  width: 36px;
   text-align: center;
-  border-right: 1px solid var(--blockr-color-border, #e5e7eb);
+  cursor: default;
 }
 
 /* Cell editor — inset box-shadow for the focus ring (no layout

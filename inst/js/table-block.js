@@ -308,6 +308,42 @@
       return '';
     }
 
+    _typeLabel(c) {
+      // Mirror blockr.extra's type-label vocabulary: <int>, <dbl>, <chr>,
+      // <date>, <fct>, <lgl>, <dttm>.
+      const map = {
+        int: '<int>', dbl: '<dbl>', chr: '<chr>',
+        date: '<date>', factor: '<fct>', lgl: '<lgl>',
+        datetime: '<dttm>'
+      };
+      return map[c.type] || `<${c.type}>`;
+    }
+
+    _buildHeaderCell(c) {
+      const th = document.createElement('th');
+      th.classList.add('tb-sortable');
+      if (this._view.sort_col === c.name && this._view.sort_dir !== 'none') {
+        th.classList.add('tb-sort-active');
+      }
+      const name = document.createElement('span');
+      name.className = 'tb-col-name';
+      name.textContent = c.name;
+      const typeRow = document.createElement('span');
+      typeRow.className = 'tb-type-row';
+      const typeLabel = document.createElement('span');
+      typeLabel.className = 'tb-type-label';
+      typeLabel.textContent = this._typeLabel(c);
+      const sortIcon = document.createElement('span');
+      sortIcon.className = 'tb-sort-icon';
+      sortIcon.textContent = this._sortIcon(c.name);
+      typeRow.appendChild(typeLabel);
+      typeRow.appendChild(sortIcon);
+      th.appendChild(name);
+      th.appendChild(typeRow);
+      th.addEventListener('click', () => this._onSortHeader(c.name));
+      return th;
+    }
+
     // ----------------------------------------------------- Strip rendering
 
     _renderStrip() {
@@ -427,6 +463,13 @@
 
       const thead = document.createElement('thead');
       const trh = document.createElement('tr');
+
+      // Row-number column header (empty)
+      const thNum = document.createElement('th');
+      thNum.className = 'tb-rownum-col';
+      trh.appendChild(thNum);
+
+      // Selection column header (master checkbox)
       const thSel = document.createElement('th');
       thSel.className = 'tb-select-col';
       const cbAll = document.createElement('input');
@@ -445,16 +488,7 @@
       thSel.appendChild(cbAll);
       trh.appendChild(thSel);
 
-      this._columns.forEach(c => {
-        const th = document.createElement('th');
-        th.classList.add('tb-sortable');
-        if (this._view.sort_col === c.name && this._view.sort_dir !== 'none') {
-          th.classList.add('tb-sort-active');
-        }
-        th.innerHTML = `${c.name} <span class="tb-sort-icon">${this._sortIcon(c.name)}</span>`;
-        th.addEventListener('click', () => this._onSortHeader(c.name));
-        trh.appendChild(th);
-      });
+      this._columns.forEach(c => trh.appendChild(this._buildHeaderCell(c)));
       thead.appendChild(trh);
       tbl.appendChild(thead);
 
@@ -465,8 +499,9 @@
         const k = u[key]; if (k != null && k !== '') upsertByKey[String(k)] = u;
       });
       const deletedKeys = new Set((this._state.deletes || []).map(String));
+      const startNum = (this._view.page - 1) * this._view.page_size + 1;
 
-      this._upstreamPage.forEach(upstreamRow => {
+      this._upstreamPage.forEach((upstreamRow, idx) => {
         const tr = document.createElement('tr');
         const k = key ? upstreamRow[key] : null;
         const upsert = (k != null) ? upsertByKey[String(k)] : null;
@@ -478,7 +513,13 @@
           tr.classList.add('gb-row--updated');
         }
 
-        // Select column
+        // Row number
+        const tdNum = document.createElement('td');
+        tdNum.className = 'tb-rownum-col';
+        tdNum.textContent = String(startNum + idx);
+        tr.appendChild(tdNum);
+
+        // Selection
         const tdSel = document.createElement('td');
         tdSel.className = 'tb-select-col';
         const cb = document.createElement('input');
@@ -521,6 +562,9 @@
     // ----------------------------------------------------- Cell editing
 
     _onCellClick(td, rowData, col, source, upstreamRow) {
+      // If we're already editing THIS cell, ignore: the click bubbled
+      // up from the editor (e.g. clicking a <select> to open it).
+      if (this._editingCell && this._editingCell.td === td) return;
       if (this._editingCell) this._commitEditor();
       this._beginEditor(td, rowData, col, source, upstreamRow);
     }
@@ -576,6 +620,11 @@
         else if (e.key === 'Escape') { e.preventDefault(); cancel(); }
       });
       editor.addEventListener('blur', () => finishOk());
+      // Native <select> and checkbox: commit on change so picking an
+      // option / toggling the box commits without needing a separate blur.
+      if (editor.tagName === 'SELECT' || editor.type === 'checkbox') {
+        editor.addEventListener('change', () => finishOk());
+      }
 
       td.appendChild(editor);
       editor.focus();
@@ -599,14 +648,41 @@
         td.classList.add('tb-invalid');
         td.classList.remove('tb-editing');
         td.textContent = String(newValue);
-        // Block holds while invalid; recompute will see this.
-        this._refreshAll();
+        this._refreshStatusAndApply();
         return;
       }
       td.classList.remove('tb-invalid', 'tb-editing');
+      td.textContent = (newValue == null) ? '' : String(newValue);
       // Apply the change to state.
       this._applyCellChange(rowData, col, newValue, source, upstreamRow);
-      this._refreshAll();
+      // Update only the row's diff class on the page table; rebuild the
+      // strip (count / new entries change). Don't rebuild the page DOM,
+      // because the user's next click is queued against the live nodes.
+      const tr = td.closest('tr');
+      if (tr && source === 'page') this._reclassifyPageRow(tr, upstreamRow);
+      this._renderStrip();
+      this._refreshStatusAndApply();
+    }
+
+    _refreshStatusAndApply() {
+      this._refreshDeleteBtn();
+      this._refreshStatus();
+    }
+
+    _reclassifyPageRow(tr, upstreamRow) {
+      tr.classList.remove('gb-row--new', 'gb-row--updated', 'gb-row--deleted');
+      const key = this._state.key_col;
+      if (!key) return;
+      const k = upstreamRow[key];
+      if (k == null) return;
+      const ks = String(k);
+      const deletedKeys = new Set((this._state.deletes || []).map(String));
+      if (deletedKeys.has(ks)) { tr.classList.add('gb-row--deleted'); return; }
+      const upsert = (this._state.upserts || []).find(u =>
+        u[key] != null && String(u[key]) === ks);
+      if (upsert && this._rowDiffersFromUpstream(upsert, upstreamRow)) {
+        tr.classList.add('gb-row--updated');
+      }
     }
 
     _cancelEditor() {
