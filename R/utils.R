@@ -52,8 +52,11 @@ build_row_options <- function(df, key, display_cols = list()) {
   }
   lapply(seq_len(nrow(df)), function(i) {
     row_vals <- as.list(df[i, , drop = FALSE])
+    # JSON-friendly: dates / factors / POSIXct → strings the JS editors
+    # know how to display and round-trip.
+    row_vals <- setNames(lapply(row_vals, jsonable), names(row_vals))
     list(
-      key    = keys[[i]],
+      key    = jsonable(keys[[i]]),
       label  = full_labels[[i]],
       values = row_vals
     )
@@ -171,9 +174,35 @@ build_tibble_from_state <- function(rows, meta) {
   tibble::as_tibble(cols)
 }
 
-# Hook for future auto_unbox traps; v1 is a pass-through.
+# Wrap length-1 character vectors with as.list() so JSON's auto_unbox does
+# not collapse them to scalars (per feedback_shiny_auto_unbox_js).
 normalize_grid_state_for_js <- function(state) {
   if (is.null(state)) return(state)
-  state$rows <- state$rows %||% list()
+  state$upserts <- state$upserts %||% list()
+  state$deletes <- as.list(state$deletes %||% character())
   state
+}
+
+# Cast a vector to the same R type as `template`. Used so JS-side string
+# values flow back into the right column type before rows_upsert / rows_delete.
+cast_to_match <- function(x, template) {
+  if (is.factor(template)) {
+    return(factor(as.character(x), levels = levels(template)))
+  }
+  if (inherits(template, "Date")) return(as.Date(as.character(x)))
+  if (inherits(template, "POSIXct")) return(as.POSIXct(as.character(x)))
+  if (is.integer(template)) return(suppressWarnings(as.integer(x)))
+  if (is.numeric(template)) return(suppressWarnings(as.numeric(x)))
+  if (is.logical(template)) return(as.logical(x))
+  as.character(x)
+}
+
+# Cast each column of `tbl` to match the corresponding column of `template_df`
+# where present. Columns absent from template_df pass through unchanged.
+cast_tbl_to_match <- function(tbl, template_df) {
+  if (is.null(template_df) || ncol(template_df) == 0L) return(tbl)
+  for (nm in intersect(colnames(tbl), colnames(template_df))) {
+    tbl[[nm]] <- cast_to_match(tbl[[nm]], template_df[[nm]])
+  }
+  tbl
 }

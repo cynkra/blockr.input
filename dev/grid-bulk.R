@@ -27,11 +27,12 @@ applicants <- tibble::tibble(
 board <- new_dock_board(
   blocks = c(
     data = new_static_block(data = applicants),
-    grid = new_grid_block()
+    grid = new_grid_block(),
+    head = new_head_block(n = 100L)
   ),
   links = links(
-    from = "data",
-    to   = "grid"
+    from = c("data", "grid"),
+    to   = c("grid", "head")
   ),
   extensions = list(
     blockr.dag::new_dag_extension()

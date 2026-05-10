@@ -1,21 +1,22 @@
-#' Grid block (JS-driven multi-row data entry)
+#' Grid block (JS-driven multi-row data entry over an upstream tibble)
 #'
 #' A transform block that renders the upstream tibble as an editable grid
-#' (Tabulator-backed). The user pastes / types / edits rows; the block
-#' emits a tibble matching the upstream's column structure with the grid's
-#' current row set.
+#' (Tabulator-backed). The user pastes / types / edits rows / deletes rows;
+#' the block composes [dplyr::rows_upsert()] and [dplyr::rows_delete()]
+#' against upstream using a key column the builder picks via the cogwheel.
 #'
-#' Connecting a 0-row tibble upstream gives a "blank entry" mode with one
-#' empty row pre-rendered for typing.
+#' Connecting a 0-row tibble upstream gives a "blank entry" mode where every
+#' grid row becomes an insert.
 #'
-#' Different from [new_edit_block()]: the grid replaces the row set
-#' wholesale — there are no surgical `rows_upsert` / `rows_delete` semantics
-#' and no key column. Use the edit block for surgical edits to a large
-#' keyed tibble; use the grid block for bulk entry on a small tibble.
+#' Same generated-code shape as [new_edit_block()]; the difference is the
+#' UI — grid for bulk entry vs. row-picker + form for surgical edits.
 #'
 #' @param state The block's persisted state. Recognised fields:
-#'   - `rows` (list of named lists): the grid's current row set. Each row's
-#'     names match upstream's column names. Empty by default.
+#'   - `key_col` (character(1)): name of the upstream column used to identify
+#'     rows. If `NULL`, auto-picked on first hydration (first column whose
+#'     values are all unique).
+#'   - `upserts` (list of named lists): pending inserts/updates.
+#'   - `deletes` (list/character): pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
 #' @return A blockr block of class `grid_block`.
@@ -25,12 +26,19 @@
 #'   library(blockr.core)
 #'   serve(
 #'     new_grid_block(),
-#'     data = list(data = head(iris, 0)) # 0-row schema for blank entry
+#'     data = list(data = head(iris, 0))
 #'   )
 #' }
 #'
 #' @export
-new_grid_block <- function(state = list(rows = list()), ...) {
+new_grid_block <- function(
+  state = list(
+    key_col = NULL,
+    upserts = list(),
+    deletes = list()
+  ),
+  ...
+) {
   blockr.core::new_transform_block(
     server = function(id, data) {
       shiny::moduleServer(id, function(input, output, session) {
@@ -40,31 +48,33 @@ new_grid_block <- function(state = list(rows = list()), ...) {
         self_write <- new.env(parent = emptyenv())
         self_write$active <- FALSE
 
-        # Push column meta on every upstream-data change.
-        # Seed rows only on first hydration (when state is empty); after
-        # the user has been editing, send seed = NULL to keep their work.
+        # One message carries both columns and rows. Earlier we split them
+        # across grid-columns + grid-rows, but grid-rows gated on
+        # r_state$key_col which JS sets without telling R first; the result
+        # was that upstream rows never reached the grid.
         shiny::observeEvent(data(), {
           d <- data()
           meta <- build_column_meta(d)
-          rows_now <- r_state()$rows %||% list()
-          seed <- if (length(rows_now) > 0L) {
-            NULL                  # don't reseed
-          } else if (!is.null(d) && nrow(d) > 0L) {
-            tibble_to_row_list(d) # hydrate from upstream
-          } else if (length(meta) > 0L) {
-            list(empty_row(meta)) # one blank row for fresh entry
-          } else {
-            NULL
-          }
+          rows <- tibble_to_row_list(d)
+          rows_pending <- length(r_state()$upserts %||% list()) > 0L
+          n <- if (is.null(d)) 0L else nrow(d)
+          seed_blank <- !rows_pending && n == 0L && length(meta) > 0L
           session$sendCustomMessage(
             "grid-columns",
             list(
-              id        = ns("grid_input"),
-              columns   = meta,
-              seed_rows = seed
+              id         = ns("grid_input"),
+              columns    = meta,
+              rows       = rows,
+              seed_blank = seed_blank
             )
           )
         }, ignoreNULL = FALSE)
+
+        # Note: key_col auto-pick happens in JS (see grid-block.js
+        # updateColumns). JS keys upstream rows by the picked column;
+        # subsequent state pushes (R <- JS via the input binding) carry
+        # key_col so server-side make_grid_expr knows which column to
+        # rows_upsert / rows_delete by.
 
         # JS -> R
         shiny::observeEvent(input$grid_input, {
@@ -88,7 +98,7 @@ new_grid_block <- function(state = list(rows = list()), ...) {
         }, ignoreInit = TRUE)
 
         list(
-          expr  = shiny::reactive(make_grid_expr(r_state(), data())),
+          expr  = shiny::reactive(make_grid_expr(r_state(), upstream = data())),
           state = list(state = r_state)
         )
       })
@@ -97,6 +107,7 @@ new_grid_block <- function(state = list(rows = list()), ...) {
       htmltools::tagList(
         blockr.dplyr::blockr_core_js_dep(),
         blockr.dplyr::blockr_blocks_css_dep(),
+        blockr.dplyr::blockr_select_dep(),
         grid_block_dep(),
         shiny::div(
           class = "block-container",

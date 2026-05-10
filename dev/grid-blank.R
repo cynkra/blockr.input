@@ -27,11 +27,12 @@ schema <- tibble::tibble(
 board <- new_dock_board(
   blocks = c(
     schema = new_static_block(data = schema),
-    grid   = new_grid_block()
+    grid   = new_grid_block(),
+    head   = new_head_block(n = 100L)
   ),
   links = links(
-    from = "schema",
-    to   = "grid"
+    from = c("schema", "grid"),
+    to   = c("grid",   "head")
   ),
   extensions = list(
     blockr.dag::new_dag_extension()

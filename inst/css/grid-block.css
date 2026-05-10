@@ -10,24 +10,19 @@
   padding: 8px;
 }
 
-.gb-toolbar {
+/* Cogwheel popover */
+.gb-popover {
+  position: absolute;
+  top: 28px;
+  right: 8px;
+  z-index: 30;
+  min-width: 220px;
+  padding: 12px;
+}
+.gb-popover-field {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 8px 0;
-}
-
-.gb-status {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--blockr-color-text-secondary, #6b7280);
-}
-.gb-status--ok  { color: var(--blockr-color-text-secondary, #6b7280); }
-.gb-status--err { color: var(--blockr-color-error,         #dc3545); }
-
-.gb-delete-btn[disabled] {
-  opacity: 0.4;
-  pointer-events: none;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .gb-host {
@@ -36,9 +31,43 @@
   overflow: hidden;
 }
 
+/* Action footer — same shape as edit-block .eb-actions */
+
+.gb-actions {
+  margin-top: 8px;
+}
+
+.gb-actions-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.gb-delete-link {
+  color: #b91c1c;
+}
+
+.gb-delete-link:hover {
+  color: #7f1d1d !important;
+}
+
+.gb-disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: default;
+}
+
+.gb-status {
+  float: right;
+  font-size: 12px;
+  color: var(--blockr-color-text-secondary, #6b7280);
+}
+.gb-status--ok  { color: var(--blockr-color-text-secondary, #6b7280); }
+.gb-status--err { color: var(--blockr-color-error,         #dc3545); }
+
 /* ---- Tabulator chrome to blockr design tokens ---- */
 
-.gb-host .tabulator {
+.gb-host.tabulator {
   font-family: var(--blockr-font,
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
   font-size: 13px;
@@ -46,7 +75,11 @@
   border: none;
 }
 
-.gb-host .tabulator .tabulator-header {
+/* Don't paint the empty scroll area dark — keep it the table background. */
+.gb-host.tabulator .tabulator-tableholder,
+.gb-host.tabulator-tableholder { background: #fff; }
+
+.gb-host.tabulator .tabulator-header {
   background: var(--blockr-grey-50, #f9fafb);
   border-bottom: 1px solid var(--blockr-color-border, #e5e7eb);
   font-weight: 600;
@@ -56,37 +89,63 @@
   letter-spacing: 0.04em;
 }
 
-.gb-host .tabulator .tabulator-row {
+.gb-host.tabulator .tabulator-row {
   border-bottom: 1px solid var(--blockr-color-border, #e5e7eb);
 }
 
-.gb-host .tabulator .tabulator-row:hover {
+.gb-host.tabulator .tabulator-row:hover {
   background: var(--blockr-color-bg-hover, #f3f4f6);
 }
 
-.gb-host .tabulator .tabulator-row.tabulator-selected {
+.gb-host.tabulator .tabulator-row.tabulator-selected {
   background: var(--blockr-blue-50, #eff6ff);
 }
 
-.gb-host .tabulator .tabulator-cell {
+/* Diff-state indicators: amber tint for updated rows, green for new,
+   red strikethrough for soft-deleted. Left border carries the colour
+   so the row body stays readable. !important needed because Tabulator's
+   zebra-stripe rule for `.tabulator-row-even` ships with high specificity
+   and would otherwise win. */
+.gb-host.tabulator .tabulator-row.gb-row--updated,
+.gb-host.tabulator .tabulator-row.tabulator-row-even.gb-row--updated {
+  background: #fffbeb !important; /* amber-50 */
+  box-shadow: inset 3px 0 0 #f59e0b !important;
+}
+.gb-host.tabulator .tabulator-row.gb-row--new,
+.gb-host.tabulator .tabulator-row.tabulator-row-even.gb-row--new {
+  background: #ecfdf5 !important; /* emerald-50 */
+  box-shadow: inset 3px 0 0 #10b981 !important;
+}
+.gb-host.tabulator .tabulator-row.gb-row--deleted,
+.gb-host.tabulator .tabulator-row.tabulator-row-even.gb-row--deleted {
+  background: #fef2f2 !important; /* red-50 */
+  box-shadow: inset 3px 0 0 #dc3545 !important;
+  color: #9ca3af !important;
+  text-decoration: line-through;
+}
+/* Selecting a strike-through row and clicking "Delete selected" again
+   undeletes it. Editing cells is allowed but stays marked-deleted; click
+   delete to bring the row back. */
+
+.gb-host.tabulator .tabulator-cell {
   padding: 6px 10px;
   border-right: 1px solid var(--blockr-color-border, #e5e7eb);
 }
 
-.gb-host .tabulator .tabulator-cell.tabulator-validation-fail {
+.gb-host.tabulator .tabulator-cell.tabulator-validation-fail {
   border-color: var(--blockr-color-error, #dc3545);
   background: #fef2f2;
   color: var(--blockr-color-error, #dc3545);
 }
 
-.gb-host .tabulator .tabulator-cell.tabulator-editing {
+.gb-host.tabulator .tabulator-cell.tabulator-editing {
   border: 1px solid var(--blockr-color-primary, #2563eb);
   box-shadow: var(--blockr-focus-ring, 0 0 0 3px rgba(59, 130, 246, 0.1));
   padding: 0;
 }
 
-.gb-host .tabulator .tabulator-cell.tabulator-editing input,
-.gb-host .tabulator .tabulator-cell.tabulator-editing select {
+.gb-host.tabulator .tabulator-cell.tabulator-editing input,
+.gb-host.tabulator .tabulator-cell.tabulator-editing select {
   height: 100%;
   padding: 6px 10px;
   border: none;

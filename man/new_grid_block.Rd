@@ -2,15 +2,21 @@
 % Please edit documentation in R/grid_block.R
 \name{new_grid_block}
 \alias{new_grid_block}
-\title{Grid block (JS-driven multi-row data entry)}
+\title{Grid block (JS-driven multi-row data entry over an upstream tibble)}
 \usage{
-new_grid_block(state = list(rows = list()), ...)
+new_grid_block(
+  state = list(key_col = NULL, upserts = list(), deletes = list()),
+  ...
+)
 }
 \arguments{
 \item{state}{The block's persisted state. Recognised fields:
 \itemize{
-\item \code{rows} (list of named lists): the grid's current row set. Each row's
-names match upstream's column names. Empty by default.
+\item \code{key_col} (character(1)): name of the upstream column used to identify
+rows. If \code{NULL}, auto-picked on first hydration (first column whose
+values are all unique).
+\item \code{upserts} (list of named lists): pending inserts/updates.
+\item \code{deletes} (list/character): pending key values to delete.
 }}
 
 \item{...}{Forwarded to \code{\link[blockr.core:new_transform_block]{blockr.core::new_transform_block()}}.}
@@ -20,25 +26,23 @@ A blockr block of class \code{grid_block}.
 }
 \description{
 A transform block that renders the upstream tibble as an editable grid
-(Tabulator-backed). The user pastes / types / edits rows; the block
-emits a tibble matching the upstream's column structure with the grid's
-current row set.
+(Tabulator-backed). The user pastes / types / edits rows / deletes rows;
+the block composes \code{\link[dplyr:rows]{dplyr::rows_upsert()}} and \code{\link[dplyr:rows]{dplyr::rows_delete()}}
+against upstream using a key column the builder picks via the cogwheel.
 }
 \details{
-Connecting a 0-row tibble upstream gives a "blank entry" mode with one
-empty row pre-rendered for typing.
+Connecting a 0-row tibble upstream gives a "blank entry" mode where every
+grid row becomes an insert.
 
-Different from \code{\link[=new_edit_block]{new_edit_block()}}: the grid replaces the row set
-wholesale — there are no surgical \code{rows_upsert} / \code{rows_delete} semantics
-and no key column. Use the edit block for surgical edits to a large
-keyed tibble; use the grid block for bulk entry on a small tibble.
+Same generated-code shape as \code{\link[=new_edit_block]{new_edit_block()}}; the difference is the
+UI — grid for bulk entry vs. row-picker + form for surgical edits.
 }
 \examples{
 if (interactive()) {
   library(blockr.core)
   serve(
     new_grid_block(),
-    data = list(data = head(iris, 0)) # 0-row schema for blank entry
+    data = list(data = head(iris, 0))
   )
 }
 

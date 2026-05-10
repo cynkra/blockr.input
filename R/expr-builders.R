@@ -45,34 +45,63 @@ make_edit_expr <- function(state) {
 
 #' Build the grid block's bquoted expression
 #'
-#' Inlines the grid's current rows as a typed tibble. Empty grid → 0-row
-#' tibble preserving the upstream column structure (so downstream blocks
-#' don't break on missing columns). Type-cast failure → same pass-through.
+#' Same shape as `make_edit_expr`: composes `dplyr::rows_delete()` then
+#' `dplyr::rows_upsert()` against upstream, using the user-picked key
+#' column. JS computes the diff (which rows are new / changed / removed)
+#' against the upstream snapshot and pushes the resulting `upserts` and
+#' `deletes` lists. Pass-through if there is no key column or nothing to
+#' apply.
 #'
-#' @param state The block state list with field `rows` (list of named lists).
-#' @param data The current upstream tibble (for column meta).
+#' Casts the JS-side string values back to upstream's column types
+#' (Date / factor / int / etc.) before inlining, so `dplyr::rows_upsert`
+#' doesn't error on type mismatch.
+#'
+#' @param state The block state list. Recognised fields: `key_col`,
+#'   `upserts`, `deletes`.
+#' @param upstream The current upstream tibble — used to coerce upserts and
+#'   delete-keys to upstream's column types. Named `upstream` not `data`
+#'   on purpose: `bbquote(.(data))` needs `data` to remain a placeholder
+#'   symbol, not a function argument.
 #'
 #' @return A `bbquoted` language object.
 #'
 #' @noRd
-make_grid_expr <- function(state, data) {
-  rows <- state$rows %||% list()
+make_grid_expr <- function(state, upstream = NULL) {
+  key     <- state$key_col
+  upserts <- state$upserts %||% list()
+  deletes <- state$deletes %||% list()
 
-  empty_pass_through <- function(d) {
-    blockr.core::bbquote(.(d)[0L, , drop = FALSE], list(d = d))
+  if (is.null(key) || !nzchar(key) ||
+      (length(upserts) == 0L && length(deletes) == 0L)) {
+    return(blockr.core::bbquote(.(data)))
   }
 
-  if (is.null(data) || ncol(data) == 0L || length(rows) == 0L) {
-    return(empty_pass_through(data %||% tibble::tibble()))
+  stmts <- list(quote(.x <- .(data)))
+
+  if (length(deletes) > 0L) {
+    key_vals <- unlist(deletes, use.names = FALSE)
+    if (!is.null(upstream) && key %in% colnames(upstream)) {
+      key_vals <- cast_to_match(key_vals, upstream[[key]])
+    }
+    deletes_tbl <- tibble::tibble(!!key := key_vals)
+    stmts <- c(stmts, list(blockr.core::bbquote(
+      .x <- dplyr::rows_delete(.x, .(d), by = .(k)),
+      list(d = deletes_tbl, k = key)
+    )))
   }
 
-  meta <- build_column_meta(data)
-  out_tbl <- tryCatch(
-    build_tibble_from_state(rows, meta),
-    error = function(e) NULL
-  )
+  if (length(upserts) > 0L) {
+    upserts_tbl <- dplyr::bind_rows(lapply(upserts, tibble::as_tibble_row))
+    if (!is.null(upstream)) {
+      upserts_tbl <- cast_tbl_to_match(upserts_tbl, upstream)
+    }
+    stmts <- c(stmts, list(blockr.core::bbquote(
+      .x <- dplyr::rows_upsert(.x, .(u), by = .(k)),
+      list(u = upserts_tbl, k = key)
+    )))
+  }
 
-  if (is.null(out_tbl)) return(empty_pass_through(data))
-
-  blockr.core::bbquote(.(out), list(out = out_tbl))
+  stmts <- c(stmts, list(quote(.x)))
+  expr  <- as.call(c(list(quote(`{`)), stmts))
+  blockr.core::bbquote(.(expr), list(expr = expr))
 }
