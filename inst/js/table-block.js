@@ -599,15 +599,31 @@
           editor.type = 'checkbox';
           editor.checked = current === true || String(current).toLowerCase() === 'true';
           break;
-        case 'factor':
-          editor = document.createElement('select');
-          (col.choices || []).forEach(v => {
-            const opt = document.createElement('option');
-            opt.value = v; opt.textContent = v;
-            editor.appendChild(opt);
+        case 'factor': {
+          // Use Blockr.Select for parity with the rest of the design
+          // system (search-as-you-type, custom panel, blockr tokens).
+          // Append the host to the td FIRST so the widget can compute
+          // dropdown-panel positioning correctly at init time.
+          const host = document.createElement('div');
+          host.className = 'tb-select-host';
+          td.innerHTML = '';
+          td.appendChild(host);
+          let picked = current == null ? '' : String(current);
+          const sel = Blockr.Select.single(host, {
+            options: (col.choices || []).map(v => ({ value: v, label: v })),
+            selected: picked,
+            placeholder: '',
+            onChange: (v) => {
+              picked = v;
+              this._commitEditor();
+            }
           });
-          editor.value = current == null ? '' : String(current);
+          editor = host;
+          Object.defineProperty(editor, 'value', { get: () => picked });
+          editor.type = 'blockr-select';
+          editor._blockrSelect = sel;
           break;
+        }
         case 'chr':
         default:
           editor = document.createElement('input');

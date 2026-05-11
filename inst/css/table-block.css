@@ -204,6 +204,53 @@
   font: inherit;
   background: transparent;
   box-sizing: border-box;
+  color: var(--blockr-color-text-primary, #111827);
+}
+
+/* Drop the native browser select chrome and add a blockr-style chevron
+   so the cell-edit dropdown feels at home next to Blockr.Select used
+   elsewhere in the design system. */
+.blockr-input-table td.tb-editing select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 24px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--blockr-grey-400, #9ca3af) 50%),
+    linear-gradient(135deg, var(--blockr-grey-400, #9ca3af) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+.blockr-input-table td.tb-editing select:focus {
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--blockr-color-primary, #2563eb) 50%),
+    linear-gradient(135deg, var(--blockr-color-primary, #2563eb) 50%, transparent 50%);
+}
+
+/* Native option list styling — limited (browser-controlled) but we can
+   set font and padding which Chrome / Firefox honour. */
+.blockr-input-table td.tb-editing select option {
+  font: inherit;
+  padding: 6px 10px;
+  color: var(--blockr-color-text-primary, #111827);
+  background: #fff;
+}
+
+/* Blockr.Select host inside a factor cell — fills the cell, no extra
+   padding (the widget handles its own). */
+.blockr-input-table td.tb-editing .tb-select-host {
+  width: 100%;
+  height: 100%;
+}
+.blockr-input-table td.tb-editing .tb-select-host .blockr-select__control {
+  padding: 6px 10px;
+  min-height: 100%;
+  background: transparent;
+  border: none;
 }
 .blockr-input-table td.tb-invalid {
   background: #fef2f2;
