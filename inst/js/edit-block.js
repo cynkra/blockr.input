@@ -330,7 +330,7 @@
       row.className = 'eb-field';
       const label = document.createElement('label');
       label.className = 'blockr-label';
-      label.textContent = colName + (isKey ? ' (key)' : '');
+      label.textContent = (meta.label || colName) + (isKey ? ' (key)' : '');
       row.appendChild(label);
 
       const inputWrap = document.createElement('div');

@@ -16,7 +16,6 @@
     constructor(el) {
       this.el = el;
       this._callback = null;
-      this._submitted = false;
 
       // Persisted state (round-trips with R)
       this._state = {
@@ -66,6 +65,12 @@
       gearHeader.appendChild(this.gearBtn);
       this.card.appendChild(gearHeader);
 
+      // Banner slot for size/availability warnings (hidden by default).
+      this.bannerEl = document.createElement('div');
+      this.bannerEl.className = 'gb-banner';
+      this.bannerEl.style.display = 'none';
+      this.card.appendChild(this.bannerEl);
+
       // Grid host
       this.gridHost = document.createElement('div');
       this.gridHost.className = 'gb-host';
@@ -101,14 +106,6 @@
       this.statusEl.className = 'gb-status';
       this.statusEl.textContent = 'ready';
       leftActions.appendChild(this.statusEl);
-
-      this.applyBtn = document.createElement('button');
-      this.applyBtn.type = 'button';
-      this.applyBtn.className = 'blockr-pill gb-apply-btn';
-      this.applyBtn.textContent = 'Apply';
-      this.applyBtn.disabled = true;
-      this.applyBtn.addEventListener('click', () => this._onApply());
-      actions.appendChild(this.applyBtn);
 
       this.card.appendChild(actions);
     }
@@ -180,7 +177,7 @@
 
     _columnDef(c) {
       const base = {
-        title: c.name,
+        title: c.label || c.name,
         field: c.name,
         headerSort: false,
         resizable: true
@@ -423,31 +420,17 @@
       const dirty = (this._state.upserts.length + this._state.deletes.length) > 0;
       this._reclassifyAllRows();
 
-      // Apply: enabled iff there's a key column AND validation passes.
-      // Same shape as edit-block; click is a no-op when nothing's pending.
-      this.applyBtn.disabled = !(r.ok && !!r.key);
-
       this._setStatus(
         !r.key         ? 'pick a key column'
         : r.errors > 0 ? `${r.errors} invalid cell(s)`
-        : !this._submitted && dirty
-                       ? `${this._state.upserts.length} upsert(s), ${this._state.deletes.length} delete(s) — click Apply`
         : !dirty       ? `${r.rowCount} rows, no changes`
         : `${this._state.upserts.length} upsert(s), ${this._state.deletes.length} delete(s) live`,
         r.ok && !!r.key
       );
 
-      // Auto-stream after first Apply (matches edit-block: explicit start,
-      // then state flows on every valid change).
-      if (this._submitted && r.ok && r.key) this._callback?.(true);
-    }
-
-    _onApply() {
-      const r = this._recomputeDiff();
-      if (!r.ok || !r.key) return;
-      this._submitted = true;
-      this.applyBtn.disabled = true;
-      this._callback?.(true);
+      // Autocommit: Tabulator's cellEdited fires on Enter/blur, which is the
+      // per-cell commit gesture. No Apply button — every valid change flows.
+      if (r.ok && r.key) this._callback?.(true);
     }
 
     _normalizeForCompare(v) {
@@ -557,7 +540,6 @@
     // -------------------------------------------------------- Public API
 
     getValue() {
-      if (!this._submitted) return null;
       // Block holds while any cell is invalid (per requirement #2).
       if (this._table && this._table.getInvalidCells().length > 0) return null;
       if (!this._state.key_col) return null;
@@ -566,6 +548,22 @@
         upserts: this._state.upserts.slice(),
         deletes: this._state.deletes.slice()
       };
+    }
+
+    setBanner(level, message) {
+      // level: 'error' | 'warning' | 'ok'. 'ok' (or no message) hides.
+      if (!message || level === 'ok') {
+        this.bannerEl.style.display = 'none';
+        this.bannerEl.textContent = '';
+        this.bannerEl.className = 'gb-banner';
+        this.gridHost.style.display = '';
+        return;
+      }
+      this.bannerEl.textContent = message;
+      this.bannerEl.className = 'gb-banner gb-banner--' + level;
+      this.bannerEl.style.display = '';
+      // Hard error: hide the grid entirely so the user doesn't try to edit.
+      this.gridHost.style.display = (level === 'error') ? 'none' : '';
     }
 
     setState(state) {
@@ -666,6 +664,10 @@
         delete el._pendingColumns;
       }
       if (el._pendingState) { el._block.setState(el._pendingState); delete el._pendingState; }
+      if (el._pendingBanner) {
+        el._block.setBanner(el._pendingBanner.level, el._pendingBanner.message);
+        delete el._pendingBanner;
+      }
     },
     receiveMessage: (el, data) => {
       if (data.state) el._block?.setState(data.state);
@@ -686,5 +688,11 @@
     const el = document.getElementById(msg.id);
     if (el?._block) el._block.setState(msg.state);
     else if (el)    el._pendingState = msg.state;
+  });
+
+  Shiny.addCustomMessageHandler('grid-banner', (msg) => {
+    const el = document.getElementById(msg.id);
+    if (el?._block) el._block.setBanner(msg.level, msg.message);
+    else if (el)    el._pendingBanner = { level: msg.level, message: msg.message };
   });
 })();

@@ -24,8 +24,10 @@ build_column_meta <- function(df) {
     } else {
       NULL
     }
+    lbl <- attr(col, "label", exact = TRUE)
     list(
       name         = nms[i],
+      label        = if (is.null(lbl)) nms[i] else as.character(lbl)[[1]],
       type         = col_type(col),
       choices      = choices,
       unique_count = n_uniq,

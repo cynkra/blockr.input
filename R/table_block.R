@@ -46,7 +46,10 @@ new_table_block <- function(
           page_size = getOption("blockr.input.page_size", 5L),
           sort_col = NULL,
           sort_dir = "none",
-          search = ""
+          search = "",
+          pending_only = FALSE,
+          pending_keys = list(),
+          key_col = ""
         ))
 
         self_write <- new.env(parent = emptyenv())
@@ -56,12 +59,13 @@ new_table_block <- function(
           if (is.null(d)) return()
           page <- slice_page(d, view)
           msg <- list(
-            id         = ns("table_input"),
-            rows       = tibble_to_row_list(page$rows),
-            total_rows = page$total_rows,
-            page       = page$page,
-            page_size  = page$page_size,
-            max_page   = page$max_page
+            id           = ns("table_input"),
+            rows         = tibble_to_row_list(page$rows),
+            total_rows   = page$total_rows,
+            page         = page$page,
+            page_size    = page$page_size,
+            max_page     = page$max_page,
+            pending_only = page$pending_only
           )
           if (with_columns) {
             sample <- tryCatch(
@@ -78,7 +82,7 @@ new_table_block <- function(
           send_page(data(), r_view(), with_columns = TRUE)
         }, ignoreNULL = FALSE)
 
-        # JS -> R: view changed (page / sort / search). Re-slice.
+        # JS -> R: view changed (page / sort / search / pending-only).
         shiny::observeEvent(input$table_view, {
           v <- input$table_view
           # Coerce numerics — Shiny sends them as plain values but
@@ -92,7 +96,10 @@ new_table_block <- function(
           } else {
             as.character(v$sort_col)
           }
-          v$sort_dir <- as.character(v$sort_dir %||% "none")
+          v$sort_dir     <- as.character(v$sort_dir %||% "none")
+          v$pending_only <- isTRUE(v$pending_only)
+          v$key_col      <- as.character(v$key_col %||% "")
+          v$pending_keys <- as.list(v$pending_keys %||% list())
           r_view(v)
           send_page(data(), v, with_columns = FALSE)
         })

@@ -52,15 +52,47 @@ apply_search <- function(data, query) {
 slice_page <- function(data, view = list()) {
   if (is.null(data)) {
     return(list(rows = tibble::tibble(), total_rows = 0L,
-                page = 1L, page_size = 5L, max_page = 1L))
+                page = 1L, page_size = 5L, max_page = 1L,
+                pending_only = FALSE))
   }
   q <- data
+
+  pending_only <- isTRUE(view$pending_only %||% FALSE)
+  if (pending_only) {
+    key <- as.character(view$key_col %||% "")
+    keys <- view$pending_keys %||% list()
+    if (length(keys)) keys <- unlist(keys, use.names = FALSE)
+    if (!nzchar(key) || length(keys) == 0L) {
+      q <- dplyr::filter(q, FALSE)
+    } else {
+      q <- dplyr::filter(q, .data[[key]] %in% !!keys)
+    }
+  }
+
   q <- apply_search(q, view$search %||% "")
   q <- apply_sort(q, view$sort_col %||% NULL, view$sort_dir %||% "none")
 
   total <- as.integer(
     dplyr::pull(dplyr::summarise(q, n = dplyr::n()), "n")
   )
+
+  # Pending-only short-circuit: return everything, no pagination. Pending
+  # sets are small by definition; the UI hides the page nav in this mode.
+  if (pending_only) {
+    rows <- tryCatch(
+      dplyr::collect(q) |> tibble::as_tibble(),
+      error = function(e) tibble::tibble()
+    )
+    return(list(
+      rows         = rows,
+      total_rows   = total,
+      page         = 1L,
+      page_size    = max(1L, total),
+      max_page     = 1L,
+      pending_only = TRUE
+    ))
+  }
+
   size <- as.integer(view$page_size %||%
                        getOption("blockr.input.page_size", 5L))
   size <- max(1L, size)
@@ -84,10 +116,11 @@ slice_page <- function(data, view = list()) {
   }
 
   list(
-    rows       = rows,
-    total_rows = total,
-    page       = page,
-    page_size  = size,
-    max_page   = max_page
+    rows         = rows,
+    total_rows   = total,
+    page         = page,
+    page_size    = size,
+    max_page     = max_page,
+    pending_only = FALSE
   )
 }

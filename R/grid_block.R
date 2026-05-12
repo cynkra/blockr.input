@@ -54,10 +54,51 @@ new_grid_block <- function(
         # was that upstream rows never reached the grid.
         shiny::observeEvent(data(), {
           d <- data()
+
+          # Hard guard: lazy tables don't belong here. The grid loads every
+          # row into the browser; for a lazy table that's either impossible
+          # or wasteful. Surface the error and stop.
+          if (!is.null(d) && inherits(d, "tbl_lazy")) {
+            session$sendCustomMessage("grid-banner", list(
+              id      = ns("grid_input"),
+              level   = "error",
+              message = paste(
+                "Grid Entry doesn't support remote (dbplyr) tables.",
+                "Use the Table CRUD block instead."
+              )
+            ))
+            return()
+          }
+
+          # Soft guard: large in-memory tables work but slow down the
+          # browser. Threshold tunable via `blockr.input.grid_max_rows`.
+          n <- if (is.null(d)) 0L else nrow(d)
+          max_rows <- getOption("blockr.input.grid_max_rows", 5000L)
+          if (n > max_rows) {
+            session$sendCustomMessage("grid-banner", list(
+              id      = ns("grid_input"),
+              level   = "warning",
+              message = sprintf(
+                paste(
+                  "Grid Entry has %s rows loaded into the browser",
+                  "(soft limit %s). Consider the Table CRUD block for",
+                  "larger tables."
+                ),
+                format(n, big.mark = ","),
+                format(max_rows, big.mark = ",")
+              )
+            ))
+          } else {
+            session$sendCustomMessage("grid-banner", list(
+              id      = ns("grid_input"),
+              level   = "ok",
+              message = ""
+            ))
+          }
+
           meta <- build_column_meta(d)
           rows <- tibble_to_row_list(d)
           rows_pending <- length(r_state()$upserts %||% list()) > 0L
-          n <- if (is.null(d)) 0L else nrow(d)
           seed_blank <- !rows_pending && n == 0L && length(meta) > 0L
           session$sendCustomMessage(
             "grid-columns",

@@ -31,6 +31,25 @@
   overflow: hidden;
 }
 
+/* Availability banner — soft warning or hard error above the grid. */
+.gb-banner {
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border-radius: var(--blockr-radius-input, 8px);
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+.gb-banner--warning {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+.gb-banner--error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
 /* Action footer — same shape as edit-block .eb-actions */
 
 .gb-actions {

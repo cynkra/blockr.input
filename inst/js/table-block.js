@@ -24,17 +24,19 @@
     constructor(el) {
       this.el = el;
       this._callback = null;
-      this._submitted = false;
 
       // Persisted state
       this._state = { key_col: null, upserts: [], deletes: [] };
-      // View state (push-only)
+      // View state (push-only). pending_only filters the visible page
+      // down to upstream rows whose key is in the pending set; null-keyed
+      // inserts are appended JS-side. See SIZES.md TODO #5.
       this._view  = {
         page: 1,
         page_size: 5,
         sort_col: null,
         sort_dir: 'none',
-        search: ''
+        search: '',
+        pending_only: false
       };
 
       // Transient
@@ -47,7 +49,6 @@
       this._searchDebounce = null;
       this._upserts_clid = new WeakMap(); // upsert obj → clid
       this._editingCell = null;           // {td, row, col, editor}
-      this._strip_selected = new Set();   // clids of strip rows selected
       this._page_selected = new Set();    // upstream keys selected on page
 
       this._buildShell();
@@ -86,19 +87,7 @@
       gearHeader.appendChild(this.gearBtn);
       this.card.appendChild(gearHeader);
 
-      // Pending strip
-      this.stripWrap = document.createElement('div');
-      this.stripWrap.className = 'tb-strip-wrap';
-      const stripLabel = document.createElement('div');
-      stripLabel.className = 'tb-strip-label';
-      this.stripLabel = stripLabel;
-      this.stripWrap.appendChild(stripLabel);
-      this.stripScroll = document.createElement('div');
-      this.stripScroll.className = 'tb-strip-scroll';
-      this.stripWrap.appendChild(this.stripScroll);
-      this.card.appendChild(this.stripWrap);
-
-      // Search bar
+      // Search bar + pending badge
       const searchWrap = document.createElement('div');
       searchWrap.className = 'tb-search-wrap';
       this.searchInput = document.createElement('input');
@@ -109,6 +98,18 @@
         this._onSearchInput(this.searchInput.value);
       });
       searchWrap.appendChild(this.searchInput);
+
+      // Pending badge: shows count of edits + acts as a filter toggle.
+      // Position is fixed (next to search) — does NOT claim "above" /
+      // "below" the page, because in a DB-backed table the rows have no
+      // intrinsic position. See SIZES.md "M and XL fusion".
+      this.pendingBadge = document.createElement('button');
+      this.pendingBadge.type = 'button';
+      this.pendingBadge.className = 'tb-pending-badge';
+      this.pendingBadge.style.display = 'none';
+      this.pendingBadge.addEventListener('click', () => this._togglePendingOnly());
+      searchWrap.appendChild(this.pendingBadge);
+
       this.card.appendChild(searchWrap);
 
       // Page table
@@ -187,14 +188,6 @@
       this.statusEl.textContent = 'ready';
       leftActions.appendChild(this.statusEl);
 
-      this.applyBtn = document.createElement('button');
-      this.applyBtn.type = 'button';
-      this.applyBtn.className = 'blockr-pill tb-apply-btn';
-      this.applyBtn.textContent = 'Apply';
-      this.applyBtn.disabled = true;
-      this.applyBtn.addEventListener('click', () => this._onApply());
-      actions.appendChild(this.applyBtn);
-
       this.card.appendChild(actions);
     }
 
@@ -263,15 +256,83 @@
       // Container id ends in `-table_input`; the sibling input we want
       // to push to is `<ns>-table_view`. Strip the suffix and replace.
       const ns = this.el.id.replace(/-table_input$/, '');
-      Shiny.setInputValue(ns + '-table_view', this._view, {
+      const payload = { ...this._view };
+      // When pending-only is active, R needs the key + keys to do the
+      // filter. Compute fresh — pending set may have changed since last push.
+      if (this._view.pending_only) {
+        payload.key_col      = this._state.key_col || '';
+        payload.pending_keys = this._pendingKeys();
+      } else {
+        payload.key_col      = '';
+        payload.pending_keys = [];
+      }
+      Shiny.setInputValue(ns + '-table_view', payload, {
         priority: 'event'
       });
     }
 
-    _pushState(submitted) {
-      this._submitted = !!submitted || this._submitted;
-      // Trigger getValue via the binding's callback.
+    _pushState() {
+      // Trigger getValue via the binding's callback. Autocommit: every
+      // valid edit flows; no Apply button (cell editor's Enter/blur is the
+      // commit gesture).
       this._callback?.(true);
+    }
+
+    // -------------------------------------------------------- Pending filter
+
+    // Union of upsert keys + delete keys, as strings (R-side `%in%` only
+    // matches on type-aware comparison; we send strings and let dplyr's
+    // coercion handle it).
+    _pendingKeys() {
+      const key = this._state.key_col;
+      if (!key) return [];
+      const out = new Set();
+      (this._state.upserts || []).forEach(u => {
+        const k = u[key];
+        if (k != null && k !== '') out.add(String(k));
+      });
+      (this._state.deletes || []).forEach(k => {
+        if (k != null && k !== '') out.add(String(k));
+      });
+      return Array.from(out);
+    }
+
+    // Null-keyed upserts (pure inserts) live only on JS. They have no
+    // upstream row and so don't come back from R; render them inline at
+    // the end of the page while in pending-only mode.
+    _pendingInsertRows() {
+      const key = this._state.key_col;
+      if (!key) return [];
+      return (this._state.upserts || []).filter(u => {
+        const k = u[key];
+        return k == null || k === '';
+      });
+    }
+
+    _togglePendingOnly() {
+      this._view.pending_only = !this._view.pending_only;
+      this._view.page = 1;
+      this._refreshPendingBadge();
+      this._pushView();
+    }
+
+    _refreshPendingBadge() {
+      const u = (this._state.upserts || []).length;
+      const d = (this._state.deletes || []).length;
+      const total = u + d;
+      if (total === 0 && !this._view.pending_only) {
+        this.pendingBadge.style.display = 'none';
+        return;
+      }
+      this.pendingBadge.style.display = '';
+      this.pendingBadge.classList.toggle('tb-pending-badge--active',
+                                          this._view.pending_only);
+      this.pendingBadge.textContent = this._view.pending_only
+        ? `Showing ${total} pending ✕`
+        : `${total} pending`;
+      this.pendingBadge.title = this._view.pending_only
+        ? 'Show all rows'
+        : 'Show only pending edits';
     }
 
     _goToPage(p) {
@@ -327,7 +388,7 @@
       }
       const name = document.createElement('span');
       name.className = 'tb-col-name';
-      name.textContent = c.name;
+      name.textContent = c.label || c.name;
       const typeRow = document.createElement('span');
       typeRow.className = 'tb-type-row';
       const typeLabel = document.createElement('span');
@@ -342,107 +403,6 @@
       th.appendChild(typeRow);
       th.addEventListener('click', () => this._onSortHeader(c.name));
       return th;
-    }
-
-    // ----------------------------------------------------- Strip rendering
-
-    _renderStrip() {
-      this.stripScroll.innerHTML = '';
-      const upserts = this._state.upserts || [];
-      const deletes = this._state.deletes || [];
-      const totalPending = upserts.length + deletes.length;
-      this.stripLabel.textContent =
-        totalPending === 0 ? 'Pending changes (0)'
-                           : `Pending changes (${upserts.length} upsert${upserts.length===1?'':'s'}, ${deletes.length} delete${deletes.length===1?'':'s'})`;
-
-      if (totalPending === 0) {
-        const empty = document.createElement('div');
-        empty.className = 'tb-strip-empty';
-        empty.textContent = 'No pending changes. Edit a row or click "+ Add row" to begin.';
-        this.stripScroll.appendChild(empty);
-        return;
-      }
-
-      const tbl = document.createElement('table');
-      tbl.className = 'blockr-input-table';
-
-      const thead = document.createElement('thead');
-      const trh = document.createElement('tr');
-      // Selection column
-      const thSel = document.createElement('th');
-      thSel.className = 'tb-select-col';
-      thSel.textContent = '';
-      trh.appendChild(thSel);
-      this._columns.forEach(c => {
-        const th = document.createElement('th');
-        th.textContent = c.name;
-        trh.appendChild(th);
-      });
-      thead.appendChild(trh);
-      tbl.appendChild(thead);
-
-      const tbody = document.createElement('tbody');
-      // Upserts first, then deletes.
-      upserts.forEach(u => {
-        const tr = this._buildStripRow(u, 'upsert');
-        tbody.appendChild(tr);
-      });
-      deletes.forEach(k => {
-        const upstreamRow = this._upstreamPageByKey()[String(k)] || { [this._state.key_col]: k };
-        const tr = this._buildStripRow(
-          { ...upstreamRow, _gb_deleted: true, _gb_delete_key: k },
-          'delete'
-        );
-        tbody.appendChild(tr);
-      });
-      tbl.appendChild(tbody);
-      this.stripScroll.appendChild(tbl);
-    }
-
-    _buildStripRow(row, kind) {
-      const tr = document.createElement('tr');
-      tr.dataset.kind = kind;
-      // Classify
-      const key = this._state.key_col;
-      if (kind === 'delete') {
-        tr.classList.add('gb-row--deleted');
-      } else {
-        const k = row[key];
-        const upstream = (k != null && k !== '')
-          ? this._upstreamAllKnownByKey()[String(k)]
-          : null;
-        if (!upstream || k == null || k === '') tr.classList.add('gb-row--new');
-        else if (this._rowDiffersFromUpstream(row, upstream)) tr.classList.add('gb-row--updated');
-      }
-
-      // Selection cell
-      const tdSel = document.createElement('td');
-      tdSel.className = 'tb-select-col';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      const clid = this._upserts_clid.get(row) ||
-                   (kind === 'delete' ? `del_${row._gb_delete_key}` : null);
-      cb.checked = clid && this._strip_selected.has(clid);
-      cb.addEventListener('change', () => {
-        if (cb.checked) this._strip_selected.add(clid);
-        else            this._strip_selected.delete(clid);
-        this._refreshDeleteBtn();
-      });
-      tdSel.appendChild(cb);
-      tr.appendChild(tdSel);
-
-      // Cells
-      this._columns.forEach(c => {
-        const td = document.createElement('td');
-        const value = row[c.name];
-        td.textContent = (value == null || value === '') ? '' : String(value);
-        if (kind !== 'delete') {
-          td.addEventListener('click', () => this._onCellClick(td, row, c, 'strip'));
-        }
-        tr.appendChild(td);
-      });
-
-      return tr;
     }
 
     _rowDiffersFromUpstream(row, upstream) {
@@ -544,19 +504,58 @@
 
         tbody.appendChild(tr);
       });
+
+      // Pending-only mode: append null-keyed inserts at the end of the
+      // page. They never appear in upstream so R doesn't send them; this
+      // is where the user sees / edits them.
+      if (this._view.pending_only) {
+        const inserts = this._pendingInsertRows();
+        inserts.forEach((insertRow, i) => {
+          const tr = document.createElement('tr');
+          tr.classList.add('gb-row--new');
+
+          const tdNum = document.createElement('td');
+          tdNum.className = 'tb-rownum-col';
+          tdNum.textContent = '+';
+          tr.appendChild(tdNum);
+
+          const tdSel = document.createElement('td');
+          tdSel.className = 'tb-select-col';
+          // Inserts have no upstream key; can't select for upstream-key
+          // deletion. Leave the cell blank.
+          tr.appendChild(tdSel);
+
+          this._columns.forEach(c => {
+            const td = document.createElement('td');
+            const value = insertRow[c.name];
+            td.textContent = (value == null) ? '' : String(value);
+            td.addEventListener('click',
+              () => this._onCellClick(td, insertRow, c, 'insert'));
+            tr.appendChild(td);
+          });
+
+          tbody.appendChild(tr);
+        });
+      }
+
       tbl.appendChild(tbody);
       this.pageWrap.appendChild(tbl);
 
-      // Footer info
-      const start = (this._view.page - 1) * this._view.page_size + 1;
-      const end   = Math.min(this._totalRows, this._view.page * this._view.page_size);
-      this.pageInfo.textContent = this._totalRows > 0
-        ? `${start}–${end} of ${this._totalRows}`
-        : '0 rows';
-      this.pageIndicator.textContent = `Page ${this._view.page} / ${this._maxPage}`;
-      this.prevBtn.disabled = this._view.page <= 1;
-      this.nextBtn.disabled = this._view.page >= this._maxPage;
-      this.pageSizeSelect.value = String(this._view.page_size);
+      // Footer hidden in pending-only mode (all pending rows shown at once).
+      if (this._view.pending_only) {
+        this.footer.style.display = 'none';
+      } else {
+        this.footer.style.display = '';
+        const start = (this._view.page - 1) * this._view.page_size + 1;
+        const end   = Math.min(this._totalRows, this._view.page * this._view.page_size);
+        this.pageInfo.textContent = this._totalRows > 0
+          ? `${start}–${end} of ${this._totalRows}`
+          : '0 rows';
+        this.pageIndicator.textContent = `Page ${this._view.page} / ${this._maxPage}`;
+        this.prevBtn.disabled = this._view.page <= 1;
+        this.nextBtn.disabled = this._view.page >= this._maxPage;
+        this.pageSizeSelect.value = String(this._view.page_size);
+      }
     }
 
     // ----------------------------------------------------- Cell editing
@@ -664,23 +663,20 @@
         td.classList.add('tb-invalid');
         td.classList.remove('tb-editing');
         td.textContent = String(newValue);
-        this._refreshStatusAndApply();
+        this._refreshDeleteBtn();
+        this._refreshStatus();
         return;
       }
       td.classList.remove('tb-invalid', 'tb-editing');
       td.textContent = (newValue == null) ? '' : String(newValue);
       // Apply the change to state.
       this._applyCellChange(rowData, col, newValue, source, upstreamRow);
-      // Update only the row's diff class on the page table; rebuild the
-      // strip (count / new entries change). Don't rebuild the page DOM,
-      // because the user's next click is queued against the live nodes.
+      // Update only the row's diff class on the page table. Don't rebuild
+      // the page DOM — the user's next click is queued against the live
+      // nodes.
       const tr = td.closest('tr');
       if (tr && source === 'page') this._reclassifyPageRow(tr, upstreamRow);
-      this._renderStrip();
-      this._refreshStatusAndApply();
-    }
-
-    _refreshStatusAndApply() {
+      this._refreshPendingBadge();
       this._refreshDeleteBtn();
       this._refreshStatus();
     }
@@ -747,13 +743,15 @@
           this._state.upserts = this._state.upserts.filter(u => u !== upsert);
         }
       } else {
-        // Strip edit: rowData IS the upsert object.
+        // 'insert' edit: rowData IS the (null-keyed) upsert. Mutate in place.
         rowData[col.name] = this._coerceValueToType(newValue, col);
       }
 
-      // Don't flip _submitted here — only Apply does that. After first
-      // Apply, _submitted stays true and edits stream automatically.
-      this._pushState(false);
+      this._pushState();
+
+      // In pending-only mode, R-side filter set depends on state. Edits
+      // that change the pending key set need a fresh page from R.
+      if (this._view.pending_only) this._pushView();
     }
 
     _coerceValueToType(value, col) {
@@ -780,9 +778,22 @@
       if (keyCol) seed[key] = this._suggestKeyValue(keyCol);
       this._upserts_clid.set(seed, newClid());
       this._state.upserts.push(seed);
-      this._submitted = this._submitted || false; // not yet valid until cells fill
+
+      // Auto-switch to pending-only so the new row is immediately visible.
+      // In normal browse mode a fresh insert with a suggested key would
+      // most likely be off-page and invisible; pending-only puts it in
+      // front of the user.
+      if (!this._view.pending_only) {
+        this._view.pending_only = true;
+        this._view.page = 1;
+        this._pushView();
+      } else {
+        // Already in pending mode: the new insert is JS-side, but the
+        // pending key set may have changed (suggested key) so refresh.
+        this._pushView();
+      }
       this._refreshAll();
-      this._pushState(false);
+      this._pushState();
     }
 
     _suggestKeyValue(col) {
@@ -806,25 +817,7 @@
 
     _onDeleteSelected() {
       const key = this._state.key_col;
-      // Strip selections: undelete pending-deletes, drop pending upserts.
-      const keepUpserts = [];
-      const stripSel = this._strip_selected;
       const deletes = new Set((this._state.deletes || []).map(String));
-      (this._state.upserts || []).forEach(u => {
-        const clid = this._upserts_clid.get(u);
-        if (clid && stripSel.has(clid)) {
-          // Drop this upsert.
-        } else {
-          keepUpserts.push(u);
-        }
-      });
-      // Delete-marked rows in the strip → toggle off (undelete)
-      stripSel.forEach(id => {
-        if (id && id.startsWith('del_')) {
-          const k = id.slice(4);
-          deletes.delete(k);
-        }
-      });
 
       // Page selections: toggle delete on upstream keys.
       this._page_selected.forEach(k => {
@@ -832,34 +825,20 @@
         else                deletes.add(k);
       });
 
-      this._state.upserts = keepUpserts;
       this._state.deletes = Array.from(deletes).map(s => {
         // Restore native type from the upstream sample if possible.
         const upstream = this._upstreamPageByKey()[s];
         return upstream ? upstream[key] : s;
       });
-      this._strip_selected.clear();
       this._page_selected.clear();
       this._refreshAll();
-      this._pushState(false);
+      this._pushState();
+      if (this._view.pending_only) this._pushView();
     }
 
     _refreshDeleteBtn() {
-      const enabled = this._strip_selected.size + this._page_selected.size > 0;
+      const enabled = this._page_selected.size > 0;
       this.delBtn.classList.toggle('tb-disabled', !enabled);
-    }
-
-    // -------------------------------------------------------- Apply
-
-    _onApply() {
-      // Validate via the existing cell-state.
-      // We don't track invalid cells globally; assume valid if no
-      // tb-invalid classes are present.
-      if (this.el.querySelector('.tb-invalid')) return;
-      if (!this._state.key_col) return;
-      this._submitted = true;
-      this.applyBtn.disabled = true;
-      this._pushState(true);
     }
 
     // -------------------------------------------------------- Paste
@@ -888,7 +867,8 @@
         this._state.upserts.push(row);
       });
       this._refreshAll();
-      this._pushState(false);
+      this._pushState();
+      if (this._view.pending_only) this._pushView();
     }
 
     // -------------------------------------------------------- Helpers
@@ -904,18 +884,9 @@
       return out;
     }
 
-    // Combines current page + any cached upstream rows we know about.
-    // For diff-classification of the strip when a row is from a
-    // different page we don't have its full upstream row available; we
-    // fall back to the strip row's own values, which means "updated"
-    // detection only works on the current page. That's fine for v1.
-    _upstreamAllKnownByKey() {
-      return this._upstreamPageByKey();
-    }
-
     _refreshAll() {
       this._refreshDeleteBtn();
-      this._renderStrip();
+      this._refreshPendingBadge();
       this._renderPage();
       this._refreshStatus();
     }
@@ -926,13 +897,11 @@
       const dirty = (u + d) > 0;
       const invalid = !!this.el.querySelector('.tb-invalid');
       const ok = !invalid && !!this._state.key_col;
-      this.applyBtn.disabled = !(ok && dirty);
       let msg;
       if (!this._state.key_col) msg = 'pick a key column';
       else if (invalid)         msg = 'invalid cell';
       else if (!dirty)          msg = `${this._totalRows} rows, no changes`;
-      else if (this._submitted) msg = `${u} upsert(s), ${d} delete(s) live`;
-      else                      msg = `${u} upsert(s), ${d} delete(s) — click Apply`;
+      else                      msg = `${u} upsert(s), ${d} delete(s) live`;
       this.statusEl.textContent = msg;
       this.statusEl.className = 'tb-status ' + (ok ? 'tb-status--ok' : 'tb-status--err');
     }
@@ -940,7 +909,6 @@
     // -------------------------------------------------------- Public API
 
     getValue() {
-      if (!this._submitted) return null;
       if (this.el.querySelector('.tb-invalid')) return null;
       if (!this._state.key_col) return null;
       return {
