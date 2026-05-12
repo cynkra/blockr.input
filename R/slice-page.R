@@ -78,16 +78,22 @@ slice_page <- function(data, view = list()) {
 
   # Pending-only short-circuit: return everything, no pagination. Pending
   # sets are small by definition; the UI hides the page nav in this mode.
+  # Echo the caller's page_size back rather than overwriting it with the
+  # pending count — the user's pagination preference is configured outside
+  # this transient mode and must survive the round-trip.
   if (pending_only) {
     rows <- tryCatch(
       dplyr::collect(q) |> tibble::as_tibble(),
       error = function(e) tibble::tibble()
     )
+    size <- as.integer(view$page_size %||%
+                         getOption("blockr.input.page_size", 5L))
+    size <- max(1L, size)
     return(list(
       rows         = rows,
       total_rows   = total,
       page         = 1L,
-      page_size    = max(1L, total),
+      page_size    = size,
       max_page     = 1L,
       pending_only = TRUE
     ))
