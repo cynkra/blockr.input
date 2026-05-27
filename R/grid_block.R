@@ -70,9 +70,17 @@ new_grid_block <- function(
             return()
           }
 
+          # Wait for a proper data frame. During reactive init or workflow
+          # reload, `data()` can fire with NULL or an empty list before the
+          # upstream resolves. nrow() returns NULL for non-frame inputs,
+          # which breaks `if (n > max_rows)` downstream.
+          if (!is.data.frame(d)) {
+            return()
+          }
+
           # Soft guard: large in-memory tables work but slow down the
           # browser. Threshold tunable via `blockr.input.grid_max_rows`.
-          n <- if (is.null(d)) 0L else nrow(d)
+          n <- nrow(d)
           max_rows <- getOption("blockr.input.grid_max_rows", 5000L)
           if (n > max_rows) {
             session$sendCustomMessage("grid-banner", list(

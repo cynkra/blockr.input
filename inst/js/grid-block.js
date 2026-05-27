@@ -50,8 +50,11 @@
       this.card.className = 'gb-card';
       this.el.appendChild(this.card);
 
-      // Gear header (matches edit-block)
+      // Gear header (matches edit-block). Kept as a positioned anchor so
+      // the settings popover docks under the cogwheel regardless of card
+      // height or any transformed/overflow ancestor (e.g. dockview panels).
       const gearHeader = document.createElement('div');
+      this.gearHeader = gearHeader;
       gearHeader.className = 'blockr-gear-header';
       this.gearBtn = document.createElement('button');
       this.gearBtn.type = 'button';
@@ -131,7 +134,10 @@
       keyWrap.appendChild(this.keyHost);
       this.popover.appendChild(keyWrap);
 
-      this.card.appendChild(this.popover);
+      // Anchor to the gear header (top-right), not the card. The card can be
+      // hundreds of px tall and may not be the offset parent under dockview;
+      // anchoring to the small gear header pins the popover to the cogwheel.
+      this.gearHeader.appendChild(this.popover);
     }
 
     _togglePopover() {

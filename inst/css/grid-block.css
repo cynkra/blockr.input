@@ -7,14 +7,24 @@
 
 .gb-card {
   position: relative;
+  overflow: visible;
   padding: 8px;
 }
 
-/* Cogwheel popover */
+/* The gear header is the popover's positioning context: a small element
+   pinned to the card's top-right, so the popover always drops directly
+   under the cogwheel — independent of card height or any transformed /
+   overflow ancestor (dockview panels use both). Scoped to the grid block
+   so the shared .blockr-gear-header rule is untouched elsewhere. */
+.grid-block-container .blockr-gear-header {
+  position: relative;
+}
+
+/* Cogwheel popover — docked just below the gear button. */
 .gb-popover {
   position: absolute;
-  top: 28px;
-  right: 8px;
+  top: calc(100% + 6px);
+  right: 0;
   z-index: 30;
   min-width: 220px;
   padding: 12px;
