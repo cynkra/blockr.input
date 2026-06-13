@@ -30,7 +30,7 @@ lazy <- dplyr::tbl(con, "applicants")
 board <- new_dock_board(
   blocks = c(
     data  = new_static_block(data = lazy),
-    table = new_table_block(),
+    table = new_table_crud_block(),
     head  = new_head_block(n = 5L)
   ),
   links = links(

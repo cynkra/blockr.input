@@ -23,7 +23,7 @@ register_blocks_internal <- function() {
     package = "blockr.input"
   )
   register_blocks(
-    "new_table_block",
+    "new_table_crud_block",
     name = "Table CRUD",
     description = paste0(
       "Server-paginated browse-and-edit over a tibble or dbplyr lazy ",

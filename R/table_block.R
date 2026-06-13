@@ -19,16 +19,16 @@
 #'   - `deletes` (list/character): pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
-#' @return A blockr block of class `table_block`.
+#' @return A blockr block of class `table_crud_block`.
 #'
 #' @examples
 #' if (interactive()) {
 #'   library(blockr.core)
-#'   serve(new_table_block(), data = list(data = head(iris, 30)))
+#'   serve(new_table_crud_block(), data = list(data = head(iris, 30)))
 #' }
 #'
 #' @export
-new_table_block <- function(
+new_table_crud_block <- function(
   state = list(
     key_col = NULL,
     upserts = list(),
@@ -143,10 +143,24 @@ new_table_block <- function(
         )
       )
     },
-    class = "table_block",
+    class = "table_crud_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
     allow_empty_state = "state",
     ...
   )
+}
+
+#' Table block (deprecated alias)
+#'
+#' Deprecated alias for [new_table_crud_block()]. The block was renamed
+#' from `new_table_block` to `new_table_crud_block` to free the generic
+#' "Table" name. Kept so existing serialized boards that reference
+#' `new_table_block` still deserialize.
+#'
+#' @param ... Forwarded to [new_table_crud_block()].
+#' @return A blockr block of class `table_crud_block`.
+#' @export
+new_table_block <- function(...) {
+  new_table_crud_block(...)
 }

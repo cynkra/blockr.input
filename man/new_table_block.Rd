@@ -2,45 +2,19 @@
 % Please edit documentation in R/table_block.R
 \name{new_table_block}
 \alias{new_table_block}
-\title{Table block (server-paginated CRUD over an upstream table)}
+\title{Table block (deprecated alias)}
 \usage{
-new_table_block(
-  state = list(key_col = NULL, upserts = list(), deletes = list()),
-  ...
-)
+new_table_block(...)
 }
 \arguments{
-\item{state}{The persisted state. Recognised fields:
-\itemize{
-\item \code{key_col} (character(1)): name of the upstream column used to
-identify rows. Auto-picked on first hydration if \code{NULL}.
-\item \code{upserts} (list of named lists): pending inserts/updates.
-\item \code{deletes} (list/character): pending key values to delete.
-}}
-
-\item{...}{Forwarded to \code{\link[blockr.core:new_transform_block]{blockr.core::new_transform_block()}}.}
+\item{...}{Forwarded to \code{\link[=new_table_crud_block]{new_table_crud_block()}}.}
 }
 \value{
-A blockr block of class \code{table_block}.
+A blockr block of class \code{table_crud_block}.
 }
 \description{
-A transform block that browses a tibble or dbplyr lazy table one
-page at a time, with sort and global search resolved on the R side.
-Pending edits (upserts and deletes) are accumulated in a JS-side
-"pending changes" strip that stays visible regardless of which page
-the user is on; on Apply the block emits
-\code{data |> dplyr::rows_delete(...) |> dplyr::rows_upsert(...)}.
-}
-\details{
-Unlike \code{\link[=new_grid_block]{new_grid_block()}} this block does NOT load the full upstream
-into the browser; only the current page slice round-trips to JS, so
-it works on tens-of-thousands-of-rows tibbles and on dbplyr lazy
-tables without \code{collect()}.
-}
-\examples{
-if (interactive()) {
-  library(blockr.core)
-  serve(new_table_block(), data = list(data = head(iris, 30)))
-}
-
+Deprecated alias for \code{\link[=new_table_crud_block]{new_table_crud_block()}}. The block was renamed
+from \code{new_table_block} to \code{new_table_crud_block} to free the generic
+"Table" name. Kept so existing serialized boards that reference
+\code{new_table_block} still deserialize.
 }
