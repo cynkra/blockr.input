@@ -4,19 +4,15 @@
 \alias{new_table_crud_block}
 \title{Table block (server-paginated CRUD over an upstream table)}
 \usage{
-new_table_crud_block(
-  state = list(key_col = NULL, upserts = list(), deletes = list()),
-  ...
-)
+new_table_crud_block(key_col = NULL, upserts = list(), deletes = list(), ...)
 }
 \arguments{
-\item{state}{The persisted state. Recognised fields:
-\itemize{
-\item \code{key_col} (character(1)): name of the upstream column used to
-identify rows. Auto-picked on first hydration if \code{NULL}.
-\item \code{upserts} (list of named lists): pending inserts/updates.
-\item \code{deletes} (list/character): pending key values to delete.
-}}
+\item{key_col}{character(1): name of the upstream column used to identify
+rows. Auto-picked on first hydration if \code{NULL}.}
+
+\item{upserts}{list of named lists: pending inserts/updates.}
+
+\item{deletes}{list/character: pending key values to delete.}
 
 \item{...}{Forwarded to \code{\link[blockr.core:new_transform_block]{blockr.core::new_transform_block()}}.}
 }

@@ -5,24 +5,28 @@
 \title{Edit block (JS-driven CRUD over an upstream tibble)}
 \usage{
 new_edit_block(
-  state = list(key_col = NULL, display_cols = list(), editable_cols = list(), upserts =
-    list(), deletes = list()),
+  key_col = NULL,
+  display_cols = list(),
+  editable_cols = list(),
+  upserts = list(),
+  deletes = list(),
   ...
 )
 }
 \arguments{
-\item{state}{The block's persisted state. Recognised fields:
-\itemize{
-\item \code{key_col} (character(1)): name of the upstream column used to identify
-rows. Required before any operation can be applied.
-\item \code{display_cols} (list/character): optional extra columns shown in the row
-picker label, alongside the key.
-\item \code{editable_cols} (list/character): columns the user can edit / fill in
-for new rows. Defaults to all non-key columns.
-\item \code{upserts} (list of named lists): pending inserts/updates. Each entry
-carries \code{key + editable_cols}.
-\item \code{deletes} (list/character): pending key values to delete.
-}}
+\item{key_col}{character(1): name of the upstream column used to identify
+rows. Required before any operation can be applied.}
+
+\item{display_cols}{list/character: optional extra columns shown in the row
+picker label, alongside the key.}
+
+\item{editable_cols}{list/character: columns the user can edit / fill in for
+new rows. Defaults to all non-key columns.}
+
+\item{upserts}{list of named lists: pending inserts/updates. Each entry
+carries \code{key + editable_cols}.}
+
+\item{deletes}{list/character: pending key values to delete.}
 
 \item{...}{Forwarded to \code{\link[blockr.core:new_transform_block]{blockr.core::new_transform_block()}}.}
 }
@@ -43,7 +47,7 @@ insert path is exercised.
 if (interactive()) {
   library(blockr.core)
   serve(
-    new_edit_block(state = list(key_col = "Species")),
+    new_edit_block(key_col = "Species"),
     data = list(data = iris)
   )
 }

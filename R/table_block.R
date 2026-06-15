@@ -12,11 +12,10 @@
 #' it works on tens-of-thousands-of-rows tibbles and on dbplyr lazy
 #' tables without `collect()`.
 #'
-#' @param state The persisted state. Recognised fields:
-#'   - `key_col` (character(1)): name of the upstream column used to
-#'     identify rows. Auto-picked on first hydration if `NULL`.
-#'   - `upserts` (list of named lists): pending inserts/updates.
-#'   - `deletes` (list/character): pending key values to delete.
+#' @param key_col character(1): name of the upstream column used to identify
+#'   rows. Auto-picked on first hydration if `NULL`.
+#' @param upserts list of named lists: pending inserts/updates.
+#' @param deletes list/character: pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
 #' @return A blockr block of class `table_crud_block`.
@@ -29,18 +28,25 @@
 #'
 #' @export
 new_table_crud_block <- function(
-  state = list(
-    key_col = NULL,
-    upserts = list(),
-    deletes = list()
-  ),
+  key_col = NULL,
+  upserts = list(),
+  deletes = list(),
   ...
 ) {
   blockr.core::new_transform_block(
     server = function(id, data) {
       shiny::moduleServer(id, function(input, output, session) {
         ns <- session$ns
-        r_state <- shiny::reactiveVal(state)
+
+        st <- js_block_state(
+          input, session,
+          name       = "table",
+          input_name = "table_input",
+          state = list(key_col = key_col, upserts = upserts, deletes = deletes),
+          normalize_state = normalize_grid_state_for_js,
+          ignore_init = TRUE
+        )
+
         r_view  <- shiny::reactiveVal(list(
           page = 1L,
           page_size = getOption("blockr.input.page_size", 5L),
@@ -51,9 +57,6 @@ new_table_crud_block <- function(
           pending_keys = list(),
           key_col = ""
         ))
-
-        self_write <- new.env(parent = emptyenv())
-        self_write$active <- FALSE
 
         send_page <- function(d, view, with_columns = FALSE) {
           if (is.null(d)) return()
@@ -104,27 +107,9 @@ new_table_crud_block <- function(
           send_page(data(), v, with_columns = FALSE)
         })
 
-        # JS -> R: pending state changes
-        shiny::observeEvent(input$table_input, {
-          self_write$active <- TRUE
-          r_state(input$table_input)
-        })
-
-        # R -> JS: external state restore (workflow reload)
-        shiny::observeEvent(r_state(), {
-          if (self_write$active) {
-            self_write$active <- FALSE
-          } else {
-            session$sendCustomMessage("table-block-update", list(
-              id    = ns("table_input"),
-              state = normalize_grid_state_for_js(r_state())
-            ))
-          }
-        }, ignoreInit = TRUE)
-
         list(
-          expr  = shiny::reactive(make_table_expr(r_state(), upstream = data())),
-          state = list(state = r_state)
+          expr  = shiny::reactive(make_table_expr(st$state(), upstream = data())),
+          state = st$fields
         )
       })
     },
@@ -146,7 +131,7 @@ new_table_crud_block <- function(
     class = "table_crud_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
-    allow_empty_state = "state",
+    allow_empty_state = TRUE,
     ...
   )
 }

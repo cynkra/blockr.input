@@ -4,20 +4,16 @@
 \alias{new_grid_block}
 \title{Grid block (JS-driven multi-row data entry over an upstream tibble)}
 \usage{
-new_grid_block(
-  state = list(key_col = NULL, upserts = list(), deletes = list()),
-  ...
-)
+new_grid_block(key_col = NULL, upserts = list(), deletes = list(), ...)
 }
 \arguments{
-\item{state}{The block's persisted state. Recognised fields:
-\itemize{
-\item \code{key_col} (character(1)): name of the upstream column used to identify
-rows. If \code{NULL}, auto-picked on first hydration (first column whose
-values are all unique).
-\item \code{upserts} (list of named lists): pending inserts/updates.
-\item \code{deletes} (list/character): pending key values to delete.
-}}
+\item{key_col}{character(1): name of the upstream column used to identify
+rows. If \code{NULL}, auto-picked on first hydration (first column whose values
+are all unique).}
+
+\item{upserts}{list of named lists: pending inserts/updates.}
+
+\item{deletes}{list/character: pending key values to delete.}
 
 \item{...}{Forwarded to \code{\link[blockr.core:new_transform_block]{blockr.core::new_transform_block()}}.}
 }

@@ -9,6 +9,7 @@ register_blocks_internal <- function() {
       "dplyr::rows_delete."
     ),
     category = "transform",
+    arguments = list(edit_arguments()),
     package = "blockr.input"
   )
   register_blocks(
@@ -20,6 +21,7 @@ register_blocks_internal <- function() {
       "row set. Paste-from-Excel as the primary entry path."
     ),
     category = "transform",
+    arguments = list(grid_arguments()),
     package = "blockr.input"
   )
   register_blocks(
@@ -31,6 +33,7 @@ register_blocks_internal <- function() {
       "composes dplyr::rows_upsert and dplyr::rows_delete on Apply."
     ),
     category = "transform",
+    arguments = list(table_crud_arguments()),
     package = "blockr.input"
   )
 }

@@ -1,6 +1,6 @@
 Package: blockr.input
 Title: Interactive Data Entry Blocks for Blockr
-Version: 0.0.0.9113
+Version: 0.0.0.9114
 Authors@R:
     person(given = "Christoph",
            family = "Sax",

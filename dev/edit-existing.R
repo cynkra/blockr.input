@@ -26,11 +26,11 @@ applicants <- tibble::tibble(
 board <- new_dock_board(
   blocks = c(
     data = new_static_block(data = applicants),
-    edit = new_edit_block(state = list(
+    edit = new_edit_block(
       key_col       = "policy_id",
       display_cols  = list("full_name"),
       editable_cols = list("age", "smoker", "sum_assured")
-    ))
+    )
   ),
   links = links(
     from = "data",

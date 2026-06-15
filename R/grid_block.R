@@ -11,12 +11,11 @@
 #' Same generated-code shape as [new_edit_block()]; the difference is the
 #' UI — grid for bulk entry vs. row-picker + form for surgical edits.
 #'
-#' @param state The block's persisted state. Recognised fields:
-#'   - `key_col` (character(1)): name of the upstream column used to identify
-#'     rows. If `NULL`, auto-picked on first hydration (first column whose
-#'     values are all unique).
-#'   - `upserts` (list of named lists): pending inserts/updates.
-#'   - `deletes` (list/character): pending key values to delete.
+#' @param key_col character(1): name of the upstream column used to identify
+#'   rows. If `NULL`, auto-picked on first hydration (first column whose values
+#'   are all unique).
+#' @param upserts list of named lists: pending inserts/updates.
+#' @param deletes list/character: pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
 #' @return A blockr block of class `grid_block`.
@@ -32,21 +31,24 @@
 #'
 #' @export
 new_grid_block <- function(
-  state = list(
-    key_col = NULL,
-    upserts = list(),
-    deletes = list()
-  ),
+  key_col = NULL,
+  upserts = list(),
+  deletes = list(),
   ...
 ) {
   blockr.core::new_transform_block(
     server = function(id, data) {
       shiny::moduleServer(id, function(input, output, session) {
         ns <- session$ns
-        r_state <- shiny::reactiveVal(state)
 
-        self_write <- new.env(parent = emptyenv())
-        self_write$active <- FALSE
+        st <- js_block_state(
+          input, session,
+          name       = "grid",
+          input_name = "grid_input",
+          state = list(key_col = key_col, upserts = upserts, deletes = deletes),
+          normalize_state = normalize_grid_state_for_js,
+          ignore_init = TRUE
+        )
 
         # One message carries both columns and rows. Earlier we split them
         # across grid-columns + grid-rows, but grid-rows gated on
@@ -106,7 +108,7 @@ new_grid_block <- function(
 
           meta <- build_column_meta(d)
           rows <- tibble_to_row_list(d)
-          rows_pending <- length(r_state()$upserts %||% list()) > 0L
+          rows_pending <- length(st$state()$upserts %||% list()) > 0L
           seed_blank <- !rows_pending && n == 0L && length(meta) > 0L
           session$sendCustomMessage(
             "grid-columns",
@@ -125,30 +127,9 @@ new_grid_block <- function(
         # key_col so server-side make_grid_expr knows which column to
         # rows_upsert / rows_delete by.
 
-        # JS -> R
-        shiny::observeEvent(input$grid_input, {
-          self_write$active <- TRUE
-          r_state(input$grid_input)
-        })
-
-        # R -> JS (external control: programmatic state changes)
-        shiny::observeEvent(r_state(), {
-          if (self_write$active) {
-            self_write$active <- FALSE
-          } else {
-            session$sendCustomMessage(
-              "grid-block-update",
-              list(
-                id    = ns("grid_input"),
-                state = normalize_grid_state_for_js(r_state())
-              )
-            )
-          }
-        }, ignoreInit = TRUE)
-
         list(
-          expr  = shiny::reactive(make_grid_expr(r_state(), upstream = data())),
-          state = list(state = r_state)
+          expr  = shiny::reactive(make_grid_expr(st$state(), upstream = data())),
+          state = st$fields
         )
       })
     },
@@ -170,7 +151,7 @@ new_grid_block <- function(
     class = "grid_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
-    allow_empty_state = "state",
+    allow_empty_state = TRUE,
     ...
   )
 }
