@@ -1,0 +1,10 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.lintr$
+^dev$
+^\.github$
+^tools$
+^tsconfig\.json$
+^README\.Rmd$
+^LICENSE\.md$
+^\.claude$

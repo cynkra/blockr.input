@@ -1,0 +1,15 @@
+{
+  // Type-checks the hand-written JS in inst/js — no build step, no emit.
+  // Checking is opt-in per file via a leading `// @ts-check` comment.
+  // Vendored libraries (inst/js/vendor) are excluded. Run: npx -p typescript tsc
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "noEmit": true,
+    "strictNullChecks": true,
+    "target": "es2021",
+    "lib": ["es2021", "dom", "dom.iterable"],
+    "types": []
+  },
+  "include": ["inst/js/*.js"]
+}
