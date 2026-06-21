@@ -12,6 +12,8 @@ Description: Extends 'blockr.core' with interactive blocks for end-user data
     composing 'dplyr::rows_upsert' and 'dplyr::rows_delete' from form-style
     inputs. Designed to feed an applicant case into a workflow without the user
     writing R.
+URL: https://github.com/cynkra/blockr.input
+BugReports: https://github.com/cynkra/blockr.input/issues
 License: GPL (>= 3)
 Depends:
     R (>= 4.1.0)
@@ -25,6 +27,7 @@ Imports:
     htmltools,
     rlang,
     shiny,
+    stats,
     stringr,
     tibble,
     utils
@@ -33,4 +36,9 @@ Suggests:
     blockr.dag,
     shinytest2,
     testthat (>= 3.0.0)
+Remotes:
+    BristolMyersSquibb/blockr.core,
+    BristolMyersSquibb/blockr.dplyr,
+    BristolMyersSquibb/blockr.dock,
+    BristolMyersSquibb/blockr.dag
 Config/testthat/edition: 3

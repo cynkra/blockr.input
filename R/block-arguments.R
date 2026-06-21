@@ -7,7 +7,7 @@
 #
 # Only CREATION-TIME configuration is advertised. The `upserts` / `deletes`
 # constructor arguments are runtime accumulators for pending edits the end user
-# makes in the widget — never something the assistant authors — so they are
+# makes in the widget - never something the assistant authors - so they are
 # deliberately omitted from the surface (a subset of the formals, like the
 # runtime-transport fields hidden in blockr.viz).
 
@@ -16,7 +16,7 @@ form_edit_arguments <- function() {
   structure(
     c(
       key_col = paste0(
-        "Name of the upstream column that uniquely identifies a row — the ",
+        "Name of the upstream column that uniquely identifies a row \u2014 the ",
         "key that dplyr::rows_upsert() / rows_delete() match on. Required ",
         "before any edit applies. Names a data column, never a literal."
       ),
@@ -49,7 +49,7 @@ grid_edit_arguments <- function() {
   structure(
     c(
       key_col = paste0(
-        "Name of the upstream column that uniquely identifies a row — the ",
+        "Name of the upstream column that uniquely identifies a row \u2014 the ",
         "key that dplyr::rows_upsert() / rows_delete() match on. If omitted, ",
         "the block auto-picks the first all-unique column on first load. ",
         "Names a data column, never a literal."
@@ -62,7 +62,7 @@ grid_edit_arguments <- function() {
       "Spreadsheet-style bulk entry: the upstream tibble is rendered as an",
       "editable grid and the user pastes / types / deletes rows. Set `key_col`",
       "to the unique-id column so edits compose against upstream by that key;",
-      "leave it unset to auto-pick. Loads all rows into the browser — use the",
+      "leave it unset to auto-pick. Loads all rows into the browser \u2014 use the",
       "Table Edit block for large or remote (dbplyr) tables."
     )
   )
@@ -73,7 +73,7 @@ table_edit_arguments <- function() {
   structure(
     c(
       key_col = paste0(
-        "Name of the upstream column that uniquely identifies a row — the ",
+        "Name of the upstream column that uniquely identifies a row \u2014 the ",
         "key that dplyr::rows_upsert() / rows_delete() match on. If omitted, ",
         "the block auto-picks one on first load. Names a data column, never a ",
         "literal."

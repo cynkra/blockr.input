@@ -48,7 +48,7 @@ build_row_options <- function(df, key, display_cols = list()) {
     as.character(keys)
   }
   full_labels <- if (length(display_cols)) {
-    paste0(as.character(keys), " — ", labels)
+    paste0(as.character(keys), " \u2014 ", labels)
   } else {
     labels
   }
@@ -56,7 +56,7 @@ build_row_options <- function(df, key, display_cols = list()) {
     row_vals <- as.list(df[i, , drop = FALSE])
     # JSON-friendly: dates / factors / POSIXct → strings the JS editors
     # know how to display and round-trip.
-    row_vals <- setNames(lapply(row_vals, jsonable), names(row_vals))
+    row_vals <- stats::setNames(lapply(row_vals, jsonable), names(row_vals))
     list(
       key    = jsonable(keys[[i]]),
       label  = full_labels[[i]],
@@ -94,14 +94,14 @@ tibble_to_row_list <- function(df) {
   nms <- colnames(df)
   lapply(seq_len(nrow(df)), function(i) {
     row <- as.list(df[i, , drop = FALSE])
-    setNames(lapply(row, jsonable), nms)
+    stats::setNames(lapply(row, jsonable), nms)
   })
 }
 
 # A blank row matching the schema's column structure.
 empty_row <- function(meta) {
   if (length(meta) == 0L) return(list())
-  setNames(
+  stats::setNames(
     as.list(rep("", length(meta))),
     vapply(meta, function(c) c$name, character(1))
   )
@@ -217,7 +217,7 @@ cast_tbl_to_match <- function(tbl, template_df) {
 build_upserts_tbl <- function(rows, template_df) {
   if (length(rows) == 0L) return(tibble::tibble())
   if (is.null(template_df) || ncol(template_df) == 0L) {
-    # No type guidance — fall back to plain bind_rows.
+    # No type guidance - fall back to plain bind_rows.
     return(dplyr::bind_rows(lapply(rows, tibble::as_tibble_row)))
   }
   cols <- list()
