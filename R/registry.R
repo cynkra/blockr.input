@@ -10,7 +10,8 @@ register_blocks_internal <- function() {
     ),
     category = "transform",
     arguments = list(form_edit_arguments()),
-    package = "blockr.input"
+    package = "blockr.input",
+    overwrite = TRUE
   )
   register_blocks(
     "new_grid_edit_block",
@@ -22,7 +23,8 @@ register_blocks_internal <- function() {
     ),
     category = "transform",
     arguments = list(grid_edit_arguments()),
-    package = "blockr.input"
+    package = "blockr.input",
+    overwrite = TRUE
   )
   register_blocks(
     "new_table_edit_block",
@@ -34,6 +36,7 @@ register_blocks_internal <- function() {
     ),
     category = "transform",
     arguments = list(table_edit_arguments()),
-    package = "blockr.input"
+    package = "blockr.input",
+    overwrite = TRUE
   )
 }
