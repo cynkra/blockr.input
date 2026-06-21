@@ -63,18 +63,12 @@ blockr_deser.edit_block <- function(x, data, ...) {
 
 #' @rdname legacy-deser
 #' @export
-blockr_deser.grid_block <- function(x, data, ...) {
+blockr_deser.grid_entry_block <- function(x, data, ...) {
   legacy_deser_input_block(data)
 }
 
 #' @rdname legacy-deser
 #' @export
 blockr_deser.table_crud_block <- function(x, data, ...) {
-  legacy_deser_input_block(data)
-}
-
-#' @rdname legacy-deser
-#' @export
-blockr_deser.table_block <- function(x, data, ...) {
   legacy_deser_input_block(data)
 }

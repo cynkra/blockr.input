@@ -7,7 +7,7 @@
  * deletes regardless of which page is on screen.
  *
  * State JSON shape (round-trips with R):
- *   { key_col, upserts, deletes }   (same as new_grid_block)
+ *   { key_col, upserts, deletes }   (same as new_grid_entry_block)
  *
  * View JSON shape (push-only to R, transient):
  *   { page, page_size, sort_col, sort_dir, search }

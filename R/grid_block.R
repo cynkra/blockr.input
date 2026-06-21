@@ -1,4 +1,4 @@
-#' Grid block (JS-driven multi-row data entry over an upstream tibble)
+#' Grid entry block (JS-driven multi-row data entry over an upstream tibble)
 #'
 #' A transform block that renders the upstream tibble as an editable grid
 #' (Tabulator-backed). The user pastes / types / edits rows / deletes rows;
@@ -18,19 +18,19 @@
 #' @param deletes list/character: pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
-#' @return A blockr block of class `grid_block`.
+#' @return A blockr block of class `grid_entry_block`.
 #'
 #' @examples
 #' if (interactive()) {
 #'   library(blockr.core)
 #'   serve(
-#'     new_grid_block(),
+#'     new_grid_entry_block(),
 #'     data = list(data = head(iris, 0))
 #'   )
 #' }
 #'
 #' @export
-new_grid_block <- function(
+new_grid_entry_block <- function(
   key_col = NULL,
   upserts = list(),
   deletes = list(),
@@ -148,7 +148,7 @@ new_grid_block <- function(
         )
       )
     },
-    class = "grid_block",
+    class = "grid_entry_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
     allow_empty_state = TRUE,

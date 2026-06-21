@@ -28,7 +28,7 @@ the user is on; on Apply the block emits
 \code{data |> dplyr::rows_delete(...) |> dplyr::rows_upsert(...)}.
 }
 \details{
-Unlike \code{\link[=new_grid_block]{new_grid_block()}} this block does NOT load the full upstream
+Unlike \code{\link[=new_grid_entry_block]{new_grid_entry_block()}} this block does NOT load the full upstream
 into the browser; only the current page slice round-trips to JS, so
 it works on tens-of-thousands-of-rows tibbles and on dbplyr lazy
 tables without \code{collect()}.

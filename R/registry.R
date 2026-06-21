@@ -13,7 +13,7 @@ register_blocks_internal <- function() {
     package = "blockr.input"
   )
   register_blocks(
-    "new_grid_block",
+    "new_grid_entry_block",
     name = "Grid Entry",
     description = paste0(
       "Multi-row data entry as an editable grid (Tabulator). Upstream ",

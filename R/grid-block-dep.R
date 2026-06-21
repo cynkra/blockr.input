@@ -1,6 +1,6 @@
 #' HTML dependency for the grid block
 #'
-#' Bundles the JS class + CSS for `new_grid_block()`, plus the vendored
+#' Bundles the JS class + CSS for `new_grid_entry_block()`, plus the vendored
 #' Tabulator dependency. Exported so other blockr packages can embed the
 #' grid-block UI.
 #'

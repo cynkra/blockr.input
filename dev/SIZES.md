@@ -6,7 +6,7 @@ fits a row-count regime where the other two are awkward.
 | Size | Block            | Row regime           | UI shape                          |
 |------|------------------|----------------------|-----------------------------------|
 | S    | `new_edit_block` | up to ~3 rows        | row picker + transposed form      |
-| M    | `new_grid_block` | tens to low thousands| Tabulator grid, paste from Excel  |
+| M    | `new_grid_entry_block` | tens to low thousands| Tabulator grid, paste from Excel  |
 | XL   | `new_table_block`| tens of thousands +  | server-paginated page + strip     |
 
 ## Why three
@@ -67,7 +67,7 @@ Gaps:
   the surface and "add row" should be tertiary.
 - No way to express groups / sections of fields.
 
-### M — `new_grid_block`
+### M — `new_grid_entry_block`
 
 Tabulator-backed editable grid. Excel paste works, looks good, validates
 per-cell. Pending edits highlight inline by row class. An Apply button

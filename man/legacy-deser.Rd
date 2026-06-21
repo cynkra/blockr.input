@@ -3,18 +3,15 @@
 \name{legacy-deser}
 \alias{legacy-deser}
 \alias{blockr_deser.edit_block}
-\alias{blockr_deser.grid_block}
+\alias{blockr_deser.grid_entry_block}
 \alias{blockr_deser.table_crud_block}
-\alias{blockr_deser.table_block}
 \title{Legacy deserialization for old block formats}
 \usage{
 \method{blockr_deser}{edit_block}(x, data, ...)
 
-\method{blockr_deser}{grid_block}(x, data, ...)
+\method{blockr_deser}{grid_entry_block}(x, data, ...)
 
 \method{blockr_deser}{table_crud_block}(x, data, ...)
-
-\method{blockr_deser}{table_block}(x, data, ...)
 }
 \arguments{
 \item{x, data, ...}{Passed through from \code{\link[blockr.core:blockr_ser]{blockr.core::blockr_deser()}}.}

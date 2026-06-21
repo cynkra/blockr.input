@@ -7,7 +7,7 @@
 #' the user is on; on Apply the block emits
 #' `data |> dplyr::rows_delete(...) |> dplyr::rows_upsert(...)`.
 #'
-#' Unlike [new_grid_block()] this block does NOT load the full upstream
+#' Unlike [new_grid_entry_block()] this block does NOT load the full upstream
 #' into the browser; only the current page slice round-trips to JS, so
 #' it works on tens-of-thousands-of-rows tibbles and on dbplyr lazy
 #' tables without `collect()`.
@@ -134,18 +134,4 @@ new_table_crud_block <- function(
     allow_empty_state = TRUE,
     ...
   )
-}
-
-#' Table block (deprecated alias)
-#'
-#' Deprecated alias for [new_table_crud_block()]. The block was renamed
-#' from `new_table_block` to `new_table_crud_block` to free the generic
-#' "Table" name. Kept so existing serialized boards that reference
-#' `new_table_block` still deserialize.
-#'
-#' @param ... Forwarded to [new_table_crud_block()].
-#' @return A blockr block of class `table_crud_block`.
-#' @export
-new_table_block <- function(...) {
-  new_table_crud_block(...)
 }

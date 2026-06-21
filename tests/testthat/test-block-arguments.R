@@ -11,7 +11,7 @@ ctor_formals <- function(ctor) {
 test_that("every *_arguments() descriptor is consistent with its constructor", {
   pairs <- list(
     list(args = edit_arguments,       ctor = new_edit_block),
-    list(args = grid_arguments,       ctor = new_grid_block),
+    list(args = grid_arguments,       ctor = new_grid_entry_block),
     list(args = table_crud_arguments, ctor = new_table_crud_block)
   )
 
