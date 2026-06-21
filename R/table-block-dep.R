@@ -1,6 +1,6 @@
 #' HTML dependency for the table block
 #'
-#' Bundles the JS class + CSS for `new_table_crud_block()`. Hand-rolled,
+#' Bundles the JS class + CSS for `new_table_edit_block()`. Hand-rolled,
 #' no Tabulator dependency.
 #'
 #' @return An `htmltools::tagList` of `htmlDependency` objects.

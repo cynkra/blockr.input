@@ -19,19 +19,19 @@
 #' @param deletes list/character: pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
-#' @return A blockr block of class `edit_block`.
+#' @return A blockr block of class `form_edit_block`.
 #'
 #' @examples
 #' if (interactive()) {
 #'   library(blockr.core)
 #'   serve(
-#'     new_edit_block(key_col = "Species"),
+#'     new_form_edit_block(key_col = "Species"),
 #'     data = list(data = iris)
 #'   )
 #' }
 #'
 #' @export
-new_edit_block <- function(
+new_form_edit_block <- function(
   key_col = NULL,
   display_cols = list(),
   editable_cols = list(),
@@ -110,7 +110,7 @@ new_edit_block <- function(
         )
       )
     },
-    class = "edit_block",
+    class = "form_edit_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
     allow_empty_state = TRUE,

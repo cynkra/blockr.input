@@ -1,6 +1,6 @@
 #' HTML dependency for the edit block
 #'
-#' Bundles the JS class + CSS for `new_edit_block()`. Exported so other blockr
+#' Bundles the JS class + CSS for `new_form_edit_block()`. Exported so other blockr
 #' packages can embed the edit-block UI.
 #'
 #' @return An `htmltools::tagList` of `htmlDependency` objects.

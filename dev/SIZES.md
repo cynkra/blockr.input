@@ -5,8 +5,8 @@ fits a row-count regime where the other two are awkward.
 
 | Size | Block            | Row regime           | UI shape                          |
 |------|------------------|----------------------|-----------------------------------|
-| S    | `new_edit_block` | up to ~3 rows        | row picker + transposed form      |
-| M    | `new_grid_entry_block` | tens to low thousands| Tabulator grid, paste from Excel  |
+| S    | `new_form_edit_block` | up to ~3 rows        | row picker + transposed form      |
+| M    | `new_grid_edit_block` | tens to low thousands| Tabulator grid, paste from Excel  |
 | XL   | `new_table_block`| tens of thousands +  | server-paginated page + strip     |
 
 ## Why three
@@ -49,7 +49,7 @@ work should preserve.
 
 ## Per-size detail and what's missing
 
-### S — `new_edit_block`
+### S — `new_form_edit_block`
 
 Row picker + form. Today the form is vertical fields (one per editable
 col). The label is the column name. Good for 1 to ~3 rows but not yet
@@ -67,7 +67,7 @@ Gaps:
   the surface and "add row" should be tertiary.
 - No way to express groups / sections of fields.
 
-### M — `new_grid_entry_block`
+### M — `new_grid_edit_block`
 
 Tabulator-backed editable grid. Excel paste works, looks good, validates
 per-cell. Pending edits highlight inline by row class. An Apply button
@@ -82,10 +82,10 @@ cell-edit.
 Gaps:
 - Only in-memory. Connecting a dbplyr lazy table doesn't make sense here
   and isn't blocked. Should error when upstream is lazy, pointing at
-  Table CRUD.
+  Table Edit.
 - No row-count budget. A user can connect 100k rows and the browser will
   suffer in silence. Needs a soft warning above some threshold (start
-  at 5k) pointing at Table CRUD.
+  at 5k) pointing at Table Edit.
 - Apply button is redundant given cell-commit-on-Enter; remove.
 - No column labels (same `attr(col, "label")` gap as S).
 
@@ -156,9 +156,9 @@ Ordered by what unlocks the most.
    the diff on each `cellEdited` / `rowAdded` / `rowDeleted` /
    `clipboardPasted`. No staging UI on M.
 4. **M: lazy-table error + row-budget warning** (agreed, do it).
-   - `inherits(upstream, "tbl_lazy")` → error pointing at Table CRUD.
+   - `inherits(upstream, "tbl_lazy")` → error pointing at Table Edit.
    - `nrow(upstream) > 5000` → soft banner above the grid pointing at
-     Table CRUD. Threshold tunable via `getOption("blockr.input.grid_max_rows")`.
+     Table Edit. Threshold tunable via `getOption("blockr.input.grid_max_rows")`.
 5. ~~**XL: staging without the strip.**~~ Done.
    - On-page pending: inline diff class on the row.
    - Off-page pending: "N pending" badge in a fixed slot next to the

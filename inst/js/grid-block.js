@@ -5,7 +5,7 @@
  * pending edits/inserts; on change, computes a diff (upserts + deletes)
  * against the upstream snapshot and pushes that as state. R composes the
  * generated expression as `data |> rows_delete |> rows_upsert`, identical
- * in shape to new_edit_block().
+ * in shape to new_form_edit_block().
  *
  * Depends on: Tabulator (vendored), Blockr.Select.single (cogwheel picker).
  */

@@ -10,6 +10,6 @@ table_block_dep()
 An \code{htmltools::tagList} of \code{htmlDependency} objects.
 }
 \description{
-Bundles the JS class + CSS for \code{new_table_block()}. Hand-rolled,
+Bundles the JS class + CSS for \code{new_table_edit_block()}. Hand-rolled,
 no Tabulator dependency.
 }

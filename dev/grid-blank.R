@@ -27,7 +27,7 @@ schema <- tibble::tibble(
 board <- new_dock_board(
   blocks = c(
     schema = new_static_block(data = schema),
-    grid   = new_grid_entry_block(),
+    grid   = new_grid_edit_block(),
     head   = new_head_block(n = 100L)
   ),
   links = links(

@@ -10,9 +10,9 @@ ctor_formals <- function(ctor) {
 
 test_that("every *_arguments() descriptor is consistent with its constructor", {
   pairs <- list(
-    list(args = edit_arguments,       ctor = new_edit_block),
-    list(args = grid_arguments,       ctor = new_grid_entry_block),
-    list(args = table_crud_arguments, ctor = new_table_crud_block)
+    list(args = form_edit_arguments,       ctor = new_form_edit_block),
+    list(args = grid_edit_arguments,       ctor = new_grid_edit_block),
+    list(args = table_edit_arguments, ctor = new_table_edit_block)
   )
 
   for (p in pairs) {
@@ -34,7 +34,7 @@ test_that("every *_arguments() descriptor is consistent with its constructor", {
 })
 
 test_that("runtime accumulators are hidden from the assistant surface", {
-  expect_false(any(c("upserts", "deletes") %in% names(edit_arguments())))
-  expect_false(any(c("upserts", "deletes") %in% names(grid_arguments())))
-  expect_false(any(c("upserts", "deletes") %in% names(table_crud_arguments())))
+  expect_false(any(c("upserts", "deletes") %in% names(form_edit_arguments())))
+  expect_false(any(c("upserts", "deletes") %in% names(grid_edit_arguments())))
+  expect_false(any(c("upserts", "deletes") %in% names(table_edit_arguments())))
 })

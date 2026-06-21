@@ -8,7 +8,7 @@
 #' Connecting a 0-row tibble upstream gives a "blank entry" mode where every
 #' grid row becomes an insert.
 #'
-#' Same generated-code shape as [new_edit_block()]; the difference is the
+#' Same generated-code shape as [new_form_edit_block()]; the difference is the
 #' UI — grid for bulk entry vs. row-picker + form for surgical edits.
 #'
 #' @param key_col character(1): name of the upstream column used to identify
@@ -18,19 +18,19 @@
 #' @param deletes list/character: pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
-#' @return A blockr block of class `grid_entry_block`.
+#' @return A blockr block of class `grid_edit_block`.
 #'
 #' @examples
 #' if (interactive()) {
 #'   library(blockr.core)
 #'   serve(
-#'     new_grid_entry_block(),
+#'     new_grid_edit_block(),
 #'     data = list(data = head(iris, 0))
 #'   )
 #' }
 #'
 #' @export
-new_grid_entry_block <- function(
+new_grid_edit_block <- function(
   key_col = NULL,
   upserts = list(),
   deletes = list(),
@@ -65,8 +65,8 @@ new_grid_entry_block <- function(
               id      = ns("grid_input"),
               level   = "error",
               message = paste(
-                "Grid Entry doesn't support remote (dbplyr) tables.",
-                "Use the Table CRUD block instead."
+                "Grid Edit doesn't support remote (dbplyr) tables.",
+                "Use the Table Edit block instead."
               )
             ))
             return()
@@ -90,8 +90,8 @@ new_grid_entry_block <- function(
               level   = "warning",
               message = sprintf(
                 paste(
-                  "Grid Entry has %s rows loaded into the browser",
-                  "(soft limit %s). Consider the Table CRUD block for",
+                  "Grid Edit has %s rows loaded into the browser",
+                  "(soft limit %s). Consider the Table Edit block for",
                   "larger tables."
                 ),
                 format(n, big.mark = ","),
@@ -148,7 +148,7 @@ new_grid_entry_block <- function(
         )
       )
     },
-    class = "grid_entry_block",
+    class = "grid_edit_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
     allow_empty_state = TRUE,

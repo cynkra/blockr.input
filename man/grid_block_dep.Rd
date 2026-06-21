@@ -10,7 +10,7 @@ grid_block_dep()
 An \code{htmltools::tagList} of \code{htmlDependency} objects.
 }
 \description{
-Bundles the JS class + CSS for \code{new_grid_entry_block()}, plus the vendored
+Bundles the JS class + CSS for \code{new_grid_edit_block()}, plus the vendored
 Tabulator dependency. Exported so other blockr packages can embed the
 grid-block UI.
 }

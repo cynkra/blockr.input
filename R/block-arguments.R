@@ -12,7 +12,7 @@
 # runtime-transport fields hidden in blockr.viz).
 
 #' @noRd
-edit_arguments <- function() {
+form_edit_arguments <- function() {
   structure(
     c(
       key_col = paste0(
@@ -45,7 +45,7 @@ edit_arguments <- function() {
 }
 
 #' @noRd
-grid_arguments <- function() {
+grid_edit_arguments <- function() {
   structure(
     c(
       key_col = paste0(
@@ -63,13 +63,13 @@ grid_arguments <- function() {
       "editable grid and the user pastes / types / deletes rows. Set `key_col`",
       "to the unique-id column so edits compose against upstream by that key;",
       "leave it unset to auto-pick. Loads all rows into the browser — use the",
-      "Table CRUD block for large or remote (dbplyr) tables."
+      "Table Edit block for large or remote (dbplyr) tables."
     )
   )
 }
 
 #' @noRd
-table_crud_arguments <- function() {
+table_edit_arguments <- function() {
   structure(
     c(
       key_col = paste0(
@@ -86,7 +86,7 @@ table_crud_arguments <- function() {
       "Server-paginated browse-and-edit: sort, search and page through a",
       "tibble or dbplyr lazy table one page at a time, accumulating pending",
       "edits that apply on Apply. Set `key_col` to the unique-id column;",
-      "leave unset to auto-pick. Prefer this over Grid Entry for large or",
+      "leave unset to auto-pick. Prefer this over Grid Edit for large or",
       "remote tables (only the current page round-trips to the browser)."
     )
   )

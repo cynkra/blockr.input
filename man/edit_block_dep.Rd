@@ -10,6 +10,6 @@ edit_block_dep()
 An \code{htmltools::tagList} of \code{htmlDependency} objects.
 }
 \description{
-Bundles the JS class + CSS for \code{new_edit_block()}. Exported so other blockr
+Bundles the JS class + CSS for \code{new_form_edit_block()}. Exported so other blockr
 packages can embed the edit-block UI.
 }

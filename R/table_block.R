@@ -7,7 +7,7 @@
 #' the user is on; on Apply the block emits
 #' `data |> dplyr::rows_delete(...) |> dplyr::rows_upsert(...)`.
 #'
-#' Unlike [new_grid_entry_block()] this block does NOT load the full upstream
+#' Unlike [new_grid_edit_block()] this block does NOT load the full upstream
 #' into the browser; only the current page slice round-trips to JS, so
 #' it works on tens-of-thousands-of-rows tibbles and on dbplyr lazy
 #' tables without `collect()`.
@@ -18,16 +18,16 @@
 #' @param deletes list/character: pending key values to delete.
 #' @param ... Forwarded to [blockr.core::new_transform_block()].
 #'
-#' @return A blockr block of class `table_crud_block`.
+#' @return A blockr block of class `table_edit_block`.
 #'
 #' @examples
 #' if (interactive()) {
 #'   library(blockr.core)
-#'   serve(new_table_crud_block(), data = list(data = head(iris, 30)))
+#'   serve(new_table_edit_block(), data = list(data = head(iris, 30)))
 #' }
 #'
 #' @export
-new_table_crud_block <- function(
+new_table_edit_block <- function(
   key_col = NULL,
   upserts = list(),
   deletes = list(),
@@ -128,7 +128,7 @@ new_table_crud_block <- function(
         )
       )
     },
-    class = "table_crud_block",
+    class = "table_edit_block",
     expr_type = "bquoted",
     external_ctrl = TRUE,
     allow_empty_state = TRUE,
