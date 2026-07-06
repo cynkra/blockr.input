@@ -31,6 +31,12 @@
       this._suppressChange = false;
       this._popoverOpen = false;
       this._keySelect = null;       // Blockr.Select instance for key_col picker
+      // Stays false until the grid first holds a real diff (an edit / add /
+      // delete). While false, getValue() reports null so a clean grid — one
+      // that has only hydrated from upstream — never echoes state to R. Once
+      // true it stays true, so reverting an edit back to empty still
+      // propagates (R must hear "no changes now").
+      this._dirtiedOnce = false;
 
       this._buildShell();
       this._buildPopover();
@@ -442,6 +448,7 @@
       if (this._suppressChange) return;
       const r = this._recomputeDiff();
       const dirty = (this._state.upserts.length + this._state.deletes.length) > 0;
+      if (dirty) this._dirtiedOnce = true;
       this._reclassifyAllRows();
 
       this._setStatus(
@@ -567,6 +574,17 @@
       // Block holds while any cell is invalid (per requirement #2).
       if (this._table && this._table.getInvalidCells().length > 0) return null;
       if (!this._state.key_col) return null;
+      // A grid that has only hydrated (no edit yet) has nothing to tell R:
+      // make_grid_expr with empty upserts/deletes is just upstream, which R
+      // already has via data(). Report null so Shiny's initial input bind and
+      // every hydration are dropped by observeEvent(ignoreNULL = TRUE) — the
+      // downstream chain re-evaluates only on a confirmed edit. _dirtiedOnce
+      // latches so a later revert-to-empty still propagates.
+      if (!this._dirtiedOnce &&
+          this._state.upserts.length === 0 &&
+          this._state.deletes.length === 0) {
+        return null;
+      }
       return {
         key_col: this._state.key_col,
         upserts: this._state.upserts.slice(),
