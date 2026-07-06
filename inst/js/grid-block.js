@@ -373,6 +373,17 @@
       if (!key) return { ok: false, errors: errors.length,
                           rowCount: data.length, key: null };
 
+      // Hydration race guard: updateColumns fires _onChange on a 0ms timer,
+      // but the Tabulator table may not have rendered its rows yet. If
+      // getData() is empty while upstream has keys, the diff below would read
+      // "delete every upstream row" and flash an empty frame downstream. A
+      // genuine user deletion keeps rows in getData() flagged _gb_deleted, so
+      // this all-empty-with-upstream state only ever means "not ready yet".
+      // Bail without mutating this._state so getValue() keeps the clean diff.
+      if (data.length === 0 && Object.keys(this._upstreamByKey).length > 0) {
+        return { ok: false, errors: errors.length, rowCount: 0, key };
+      }
+
       const currentKeys = new Set();
       const explicitDeletes = new Set();
       const upserts = [];
@@ -420,7 +431,14 @@
       for (const r of this._table.getRows()) this._classifyRow(r);
     }
 
-    _onChange() {
+    // `push` gates the R callback. User gestures (cell edit, row add/delete,
+    // key-column pick) push. Hydration from upstream (updateColumns /
+    // updateRows) does NOT: R already has the upstream via data(), so echoing
+    // it back only re-fires the whole downstream chain — and worse, the diff
+    // computed mid-hydration can transiently read "delete every upstream row"
+    // (the table isn't populated yet), flashing an empty frame downstream. The
+    // JS-side key_col auto-pick still reaches R on the user's first real edit.
+    _onChange(push = true) {
       if (this._suppressChange) return;
       const r = this._recomputeDiff();
       const dirty = (this._state.upserts.length + this._state.deletes.length) > 0;
@@ -436,7 +454,7 @@
 
       // Autocommit: Tabulator's cellEdited fires on Enter/blur, which is the
       // per-cell commit gesture. No Apply button — every valid change flows.
-      if (r.ok && r.key) this._callback?.(true);
+      if (push && r.ok && r.key) this._callback?.(true);
     }
 
     _normalizeForCompare(v) {
@@ -626,7 +644,7 @@
       this._suppressChange = true;
       try { this._buildTable(); } finally { this._suppressChange = false; }
       if (this._popoverOpen) this._renderKeyPicker();
-      setTimeout(() => this._onChange(), 0);
+      setTimeout(() => this._onChange(false), 0);
     }
 
     // Legacy hook (kept in case any external code still posts grid-rows).
@@ -644,7 +662,7 @@
         if (this._table) this._safeSetData(this._materializeRows());
         else if (this._columns.length > 0) this._buildTable();
       } finally { this._suppressChange = false; }
-      setTimeout(() => this._onChange(), 0);
+      setTimeout(() => this._onChange(false), 0);
     }
   }
 
